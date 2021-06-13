@@ -1,0 +1,130 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">我的开源经历</h1><p class="post-meta">02 Jun 2016 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="my exp of open source.markd" />
+<input type="hidden" name="created" value="2016-06-02" />
+<p>开源并不是多么牛逼事情，至少在我今天看来是这样的。</p>
+<p>为什么还值得拿出来一说，是因为没有参与其中的人都只看到了开源的结果，而完全不了解产生的过程。 这其中发生哪些有趣事情，又是怎样的机缘巧合，一切的细节是值得耐人寻味的。</p>
+<!--more-->
+<h1 id="hs4j"><a href="https://github.com/zhongl/hs4j">HS4J</a></h1>
+<p>2010年有个名为<a href="https://github.com/DeNA/HandlerSocket-Plugin-for-MySQL">HandlerSocket-Plugin-for-MySQL</a> 的开源项目， 它号称可以将 MySQL 打造成一个高性能的 NoSQL 服务， 提供超过 <code>750,000 qps</code> 访问能力， 这一下触及到了不少热衷于性能的技术人的<code>G</code>点。</p>
+<blockquote>
+<p><a href="http://yoshinorimatsunobu.blogspot.com/2010/10/using-mysql-as-nosql-story-for.html">Using MySQL as a NoSQL- A story for exceeding 750,000qps on a commodity server</a></p>
+</blockquote>
+<p>在随后非常短的时间里，这些人跃跃欲试于自己的工作环境中，并孵化出了不少衍生的开源项目。其中有一个就是 <strong>hs4j</strong> ，它提供了支持 <strong>Java</strong> 语言使用 <strong>HandlerSocket</strong> 的 <strong>API</strong> 。</p>
+<blockquote>
+<p><strong>hs4j</strong> 它是 <strong>HandlerSocket for Java</strong> 的缩写，作者是*<a href="http://fnil.net/">killme2008</a>*。</p>
+</blockquote>
+<p>当时， 我的主要工作是在为 <strong>HDFS</strong> 的 NameNode HA 的方案， 而 <strong>hs4j</strong> 恰好能为这个方案提供一种高可靠且高性能存储的可能。在使用的过程， 我发现 <strong>hs4j</strong> 提供的接口用起来就像 JDBC 的一样繁复啰嗦，由此萌发一个思路：<strong>用类似 ORM 方式简化编码实现</strong>。然后我就写了<a href="https://github.com/zhongl/hs4j/tree/master/contributes/hs4j-kit"><strong>hs4j-kit</strong></a>，并联系原作者表达了希望贡献给<strong>hs4j</strong>的意愿，他看过代码后非常乐意接收，只是提了一个小小的要求：<strong>提供一份 README</strong>。</p>
+<hr />
+<h1 id="ipage"><a href="https://github.com/zhongl/iPage">iPage</a></h1>
+<p>2011年我从淘宝数据平台转岗到淘宝中间件，由于我此前有开发消息中间件的经验，因此在新的岗位上，我有一个很重要的使命就是<strong>优化</strong>另一个历史悠久的消息中间件 <strong>Notify</strong>。</p>
+<blockquote>
+<p><a href="http://code.taobao.org/p/TimeTunnel/wiki/index/"><strong>TimeTunnel2</strong></a> 是我在数据平台开发的消息中间件的第二代，应用场景和<a href="http://kafka.apache.org">Kafka</a>一样。可惜的是，在我完成上线的几个月后 <a href="http://kafka.apache.org">Kafka</a> 开源啦，囧rz</p>
+<p><strong>Notify</strong> 是2007年淘宝在调研了业界消息中间件发现没有合适之后，自研的一套系统，它是当时整个淘宝架构体系中最核心的中间件。 更多内容参见<a href="http://jm.taobao.org/about/">中间件团队官方博客</a>。</p>
+</blockquote>
+<p><strong>Notify</strong>的架构设计简单巧妙，即将一张存放消息的<strong>表</strong>作为<strong>消息队列</strong>的实现。这样的方案有两点好处：</p>
+<ol>
+<li>利用数据库可靠性和扩展性，大大降低中间件的开发难度</li>
+<li>消息是存储于数据库的，中间件几乎是无状态的，很容易水平扩展以支撑海量的吞吐请求</li>
+</ol>
+<pre><code>+-- Producer --+           +-- Notify --+           +-- Consumer --+  
+|              | --------&gt; |  [Queue]   | --------&gt; |              |
++--------------+           +------------+           +--------------+  
+                                 ||
+                                 ||
+                           +-- MySQL ---+
+                           |  [Table]   |
+                           +------------+
+</code></pre>
+<p>消息中间件最重要的使命是<strong>缓解依赖系统间响应能力不匹配</strong>的问题，因此，<strong>面对消息堆积的容忍程度</strong>是消息中间件最为关键的考量指标。<strong>Notify</strong>这一指标完全要仰仗于<strong>MySQL</strong>的表现，这样的表现力要支撑<strong>11.11购物节</strong>，需要上百台数据库实例。</p>
+<blockquote>
+<p><strong>11.11购物节</strong> 期间，淘宝的交易核心系统是必须保证足够的响应能力的，但像积分，红包，推荐等非业务核心系统几乎都要降级掉，那么连接核心与非核心系统的<strong>Notify</strong>将可能出现十几亿甚至上百亿消息的堆积。</p>
+</blockquote>
+<p>为什么不能像<a href="http://kafka.apache.org">Kafka</a>使用文件系统实现队列呢？这样的话，不仅能够节省好多服务器，还能减少其中的网络开销。其实我不是第一个这样想的人，在我之前已经有人尝试实现并开源了，取名叫<a href="https://code.google.com/archive/p/store4j/"><strong>store4j</strong></a>，只是可靠性远不如数据库的实现，而仅限开发测试环境使用。</p>
+<blockquote>
+<p><strong>技术八卦</strong></p>
+<p><strong>store4j</strong>的编写者是前淘宝首席架构师，蘑菇街联合创始人<strong>岳旭强</strong>（花名黄裳）</p>
+<p><strong>Notify</strong>的最初编写者是前淘宝中间件负责人，现任蘑菇街技术副总裁 <strong>曾宪杰</strong> （花名华黎）</p>
+</blockquote>
+<p>在看过<a href="https://code.google.com/archive/p/store4j/"><strong>store4j</strong></a>的源码后，发现内存索引需要在每次启动时扫描消息队列进行重建。这在大量消息堆积后系统意外重启时，索引重建的过程就会变得很漫长。尽管这类情况平时几乎不太可能出现，可大促活动期间出现的几率立马提升，而且是一旦出现对整个服务链路几乎是致命的。</p>
+<blockquote>
+<p>任何系统都有它的容量极限，超出之后我们是无能为力的。比较妥当的解决办法是：</p>
+<ol>
+<li>根据业务场景评估容量规模，</li>
+<li>单机濒临容量极限时，应能自我保护，重定向部分请求至另外的节点，保持自身的最低服务能力。</li>
+</ol>
+</blockquote>
+<p>因此，<strong>改善索引重建速度</strong>是我认为值得去做的一件事情。与<strong>hs4j</strong>不同的是，我并未基于<a href="https://code.google.com/archive/p/store4j/"><strong>store4j</strong></a>源码改进，而是另起炉灶实现了<a href="https://github.com/zhongl/iPage">iPage</a>，原因是改进索引重建速度的设计方案对原有的代码改动很大，不如重新实现来得容易。</p>
+<blockquote>
+<p><a href="https://github.com/zhongl/leveldb"><strong>LevelDB</strong></a> 是同时期类似设计的一款优秀实现。它是 Google 出品用 C++， 尽管有好事者把它 Port 到了 Java 上，然后我在好奇心的驱使下，并未直接拿来用，而是在实现 <strong>iPage</strong> 时借鉴一些它设计理念。</p>
+</blockquote>
+<p><strong>iPage</strong>算是我第一个自己发起的开源项目，不仅提供简明扼要的<a href="https://github.com/zhongl/iPage/blob/master/README.md">README</a>，还增加了：</p>
+<ul>
+<li><a href="https://github.com/zhongl/iPage/blob/master/doc/DESIGN.md">设计文档</a></li>
+<li><a href="https://github.com/zhongl/iPage/blob/master/src/test/java/com/github/zhongl/api/IPageTest.java">测试用例</a></li>
+<li><a href="https://github.com/zhongl/iPage/blob/master/LICENSE.txt">开源协议声明</a></li>
+</ul>
+<p>最终<strong>iPage</strong>凭借突出的性能数据取代了 <strong>store4j</strong> ，但遗憾的是没能取代 <strong>MySQL</strong> 成为生产环境的存储实现。</p>
+<hr />
+<h1 id="housemd"><a href="https://github.com/csug/housemd">HouseMD</a></h1>
+<p><strong>iPage</strong>虽未能<em>善终</em>，但来自 <strong>github</strong> 上其他程序员的关注和鼓励，让我感受到了做开源的价值。也就是在这段时间，我进入自己开源的一个高产期，其中最值得来出来说的就是<strong>HouseMD</strong>了。</p>
+<blockquote>
+<p>关于它的来历，2012年我就写过，这里就不累述，请见<a href="https://github.com/CSUG/HouseMD/wiki/About">About HouseMD</a></p>
+</blockquote>
+<p>与此前项目不同， <strong>HouseMD</strong>是个可运行的实用工具，<a href="https://github.com/CSUG/HouseMD/wiki/readme">README</a> 尤其强调<strong>安装</strong>和<strong>使用</strong>的指引。</p>
+<blockquote>
+<p>为了保证方便安装， 我与 <a href="https://github.com/linux-china/jenv"><strong>jenv</strong></a>作者一拍即合，将<strong>HouseMD</strong>纳入到<strong>jenv</strong>的工具库中。</p>
+</blockquote>
+<p>有时<em>好酒也怕巷子深</em> 啊，刚刚 POST 到 <strong>github</strong>上是无人问津的，但我自信这样工具能够也应该帮助更多的程序员。 随后我试着法子为<strong>HouseMD</strong>创造一些曝光机会，先是去<a href="http://www.oschina.net/p/housemd">开源中国</a>发布项目，而后上 Weibo 寻求转发。</p>
+<blockquote>
+<p><a href="http://weibo.com/1650016175/ynQRvvZjY?from=page_1005051650016175_profile&amp;wvr=6&amp;mod=weibotime&amp;type=comment">Weibo 大 V 转发的效果是杠杠的</a>，5天之后 <strong>github</strong> 上项目的被 Star 的数量<a href="http://weibo.com/1650016175/yoUOkA8rb?from=page_1005051650016175_profile&amp;wvr=6&amp;mod=weibotime&amp;type=comment#_rnd1464840277949">超过100</a>， 成为 Scala 语言类项目 Top 1。</p>
+<p>当然技术网红<strong>killme2008</strong>的一篇<a href="http://www.blogjava.net/killme2008/archive/2012/06/15/380822.html">利用 HouseMD 诊断 Clojure</a>，更是让我加粉不少。</p>
+</blockquote>
+<p>在被惹来不少眼球后，部分友人也有参与贡献之意，为了方便他们我又专门写了<a href="https://github.com/CSUG/HouseMD/wiki/DevGuideCN">开发指南</a>，涉及：</p>
+<ol>
+<li>代码获取</li>
+<li>编译构建</li>
+<li>IDE 支持</li>
+<li>贡献建议</li>
+<li>参考示例</li>
+</ol>
+<p>当然这里肯定少不了<a href="https://github.com/CSUG/HouseMD/tree/master/src/test/scala/com/github/zhongl/housemd/command">测试用例</a>，这次我采用 Spec 风格实现，让测试代码写的更像是文档。</p>
+<blockquote>
+<p>那时 Scala 还没有像 Spark 这样的杀手级应用，了解并掌握这门语言的国内程序员凤毛麟角，故真正有深度的贡献我最终没能等到。不过令我欣慰的是，一个名叫<a href="https://github.com/oldmanpushcart/greys-anatomy"><strong>Grey anatomy</strong></a>项目出现了，它用 Java 实现了<strong>HouseMD</strong> 大部分功能， 还额外增加了更多强大的能力。去年，在<strong>HouseMD</strong>发布<code>3</code>年后，我于 <a href="https://github.com/CSUG/HouseMD">README</a>中声明<strong>不再维护</strong>，并推荐<a href="https://github.com/oldmanpushcart/greys-anatomy"><strong>Grey anatomy</strong></a>作为更好代替者， 也是希望它能比<strong>HouseMD</strong>走的更远。</p>
+</blockquote>
+<p><strong>HouseMD</strong>之后， 我只有零星一些实验性质的项目放在 <strong>Github</strong> ，活跃度不高。</p>
+<blockquote>
+<p>有心的朋友可能注意到了 <strong>HouseMD</strong> 项目是挂在在 <strong>CSUG</strong> 下面， 而不是<strong>zhongl</strong>下，这里有个小插曲。</p>
+<p>那段时间，因为 Scala 我先后结识了 @陨石 和 @错刀， 一见如故之下， 我们厚颜无耻在 <strong>Github</strong> 上创建了 <strong>CSUG</strong> （China Scala User Group）这个组织， 为了不让主页空荡荡的， 于是乎 我和 @陨石相继把自己项目贡献到了<strong>CSUG</strong> 下。</p>
+</blockquote>
+<p>2014年的最后一天，我被领进了挖财在福地的办公区， 与刚刚开完会的 <a href="http://weibo.com/mulolo">李治国</a> 寒暄了一句，就开始到工位上写代码了， 代码了， 码了...</p>
+<hr />
+<h1 id="config-annotation"><a href="https://github.com/wacai/config-annotation">config-annotation</a></h1>
+<p>我在参与到信贷系统研发之后，孵化出了新的开源项目 <strong>config-annotation</strong> ，关于它的由来与实现细节这里就不累述了，请见2015年6月我在华东区 Scala 爱好者聚会上的分享：</p>
+<p><a href="https://github.com/CSUG/csug/blob/master/shanghai-2015-06-06/configuration_meets_scala_macro.pdf">https://github.com/CSUG/csug/blob/master/shanghai-2015-06-06/configuration_meets_scala_macro.pdf</a></p>
+<p>为什么<strong>config-annotation</strong>值得拿来一说呢？尽管它的<strong>Star</strong>和 <strong>Fork</strong> 数量都不值得一提， 但我认为它比<strong>HouseMD</strong>更贴近我对开源文化的理解。</p>
+<blockquote>
+<p><strong>公开你的源代码只是开源的第一步，真正能够爆发无限可能的是与世界上其他的程序员自由协作，相互贡献。</strong></p>
+</blockquote>
+<p>这里我做了几件事：</p>
+<ol>
+<li>向<strong>typesafe</strong>社区提交了 <a href="https://github.com/typesafehub/config/pull/242">Pull Request</a>，并得到接纳；</li>
+<li>将<strong>jar</strong>持续的发布到 <a href="http://search.maven.org/#artifactdetails%7Ccom.wacai%7Cconfig-annotation_2.11%7C0.3.4%7Cjar">Maven Central Repo</a>;</li>
+<li>将<strong>Release note</strong> 发布到<a href="http://notes.implicit.ly/post/131209824519/config-annotation-034">notes.implicit.ly</a>;</li>
+<li>借助 <a href="https://travis-ci.org/wacai/config-annotation">travis-ci.org</a> 实现持续集成；</li>
+<li>借助 <a href="https://www.codacy.com/app/zhonglunfu/config-annotation/dashboard">codacy.com</a> 反馈代码质量。</li>
+</ol>
+<p>以上这些都是为了让<strong>config-annotation</strong>真正融入到开源的世界里，使得任何一个网络能够触达的程序员都能很容易的了解它， 使用它，改进它。最终我等来 <a href="https://github.com/wacai/config-annotation/pulls?q=is%3Apr+is%3Aclosed"><strong>Pull Request</strong></a>！</p>
+<h1 id="结尾">结尾</h1>
+<p>看到这里， 我相信你会意识到，原来让你高山仰止的<strong>开源</strong>，其实和你每天的工作没有太大的区别。事实上，我发现不少优秀的程序员<strong>参与开源</strong>已经成为他们工作的一部分，而并未有明确的界限。</p>
+<p>回顾来看，参与开源的过程一直在潜移默化的改变我自己的工作方式，了解我的人应该都看在了眼里：</p>
+<ol>
+<li>我喜欢用 <strong>issue</strong> 安排团队的工作，跟踪进展，追溯变更；</li>
+<li>我喜欢用 <strong>README</strong> 帮助同事快速上手项目，降低沟通成本；</li>
+<li>我喜欢用 <strong>Merge Request</strong> 与同事协作开发，分享设计中心得，讨论 Bug 上的经验。</li>
+</ol>
+<p>言以至此，对于<strong>开源</strong>是什么，我由衷地希望看到这里的你能够与我感同身受，若是你也能实践<strong>开源</strong>，那么也就不枉我这一番良苦用心啦。</p>
+<p>The end.</p>
+<div><a href="https://zhongl.github.io/tags/config-annotation" class="post-badge">config-annotation</a><a href="https://zhongl.github.io/tags/github" class="post-badge">github</a><a href="https://zhongl.github.io/tags/housemd" class="post-badge">housemd</a><a href="https://zhongl.github.io/tags/hs4j" class="post-badge">hs4j</a><a href="https://zhongl.github.io/tags/ipage" class="post-badge">ipage</a><a href="https://zhongl.github.io/tags/open-source" class="post-badge">open source</a><a href="https://github.com/zhongl/zhongl.github.com/issues/15" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

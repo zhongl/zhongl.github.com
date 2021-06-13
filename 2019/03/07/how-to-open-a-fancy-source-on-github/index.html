@@ -1,0 +1,72 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">如何在Github上创建一个有逼格的开源项目</h1><p class="post-meta">07 Mar 2019 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="how to open a fancy source on github" />
+<input type="hidden" name="created" value="2019-03-07" />
+<p>首先, 我要感谢 <a href="https://github.com">Github</a> 让开源变得如此简单, 简单到只需要有勇气就行.</p>
+<p>门槛虽然降低了, 只可惜大多数程序猿并没有足够(Hua)严(Xin)肃(Si)对待, 使得开源的项目就好像只是公开的学习笔记, 无人问津, 完全丧失应有的意义.</p>
+<p>本文稍许入门的聊聊, 如何让你的项目严(Bi)肃(Ge)起来, 搞不好有人会来 <strong>Star</strong>, <strong>Fork</strong>, 甚至 <strong>Pull Request</strong> 呢!</p>
+<!--more-->
+<h2 id="description">Description</h2>
+<p>项目名字当然是第一重要的, 不过一个好名字着实不好想. 因此, 项目描述(<strong>Description</strong>)是不能轻视的, 简单一句话介绍好你的项目是什么, 往往决定别人是否会继续看你的 <strong>README</strong>.</p>
+<p><img src="https://user-images.githubusercontent.com/419346/55405469-b9a6a780-558c-11e9-918d-e17e0f4e84c8.png" alt="Github Description" /></p>
+<p><strong>Description</strong> 最好用<strong>英文</strong>, <a href="https://github.com">Github</a>  是一个全球性的码农社交网站, 你的项目不要排斥歪果仁嘛! 当然, 这不是重点, 重点是 <strong>Description</strong> 和 <strong>Name</strong> 一样是搜索关键字的索引来源, 对搜索引擎友好, 它就会让你的项目排名靠前, 这个好处你肯定是懂的.</p>
+<blockquote>
+<p>什么, 英文不好? 四六级没过, 翻译软件总会用吧?</p>
+</blockquote>
+<p><strong>Topic</strong> (上图底部那一行) 相当于项目的关键字, 同样地有益于搜索引擎提升关联权重.</p>
+<h2 id="readme">README</h2>
+<p>项目可以没有 <strong>Description</strong> 和 <strong>Topic</strong>, 但一定不能没有 <strong>README</strong>. 既然都开源了, 若有人无论是以何种方式看到了你的项目, 然后他却不知道如何开始, 一切前功尽弃.</p>
+<p><strong>README</strong> 正如其名, 是希望看到项目的人第一个了解的就是这个文件里的内容, 以此引导他<strong>快速且恰当地用起来, 从而理解这个项目对他的价值</strong>.</p>
+<p>内容怎么写? 你可以参考对你价值最大的开源项目, 参考它们是如何写, 一定错不了.</p>
+<blockquote>
+<p>嗯, 你可能心里犯嘀咕, 那个太专业了, 内容太详事, 写不来(其实是懒).</p>
+</blockquote>
+<p>这里捎带些私货为例, 介绍常见的两种项目类型的 <strong>README</strong> 至少要写些什么:</p>
+<h3 id="库">库</h3>
+<ol>
+<li>交代库是用来解决什么问题,</li>
+<li>示范库基本(常用)的用法,</li>
+<li>介绍使用时依赖(或安装)的方法.</li>
+</ol>
+<blockquote>
+<p>参见私货: <strong>https://github.com/zhongl/config-annotation</strong></p>
+</blockquote>
+<p>为了方便别人使用, 你的库最好支持所属编程语言主流的构建方式进行依赖, 以 <strong>Java</strong> 为例最好是 <strong>Maven</strong> 和 <strong>Gradle</strong>, <strong>Scala</strong> 则是 <strong>SBT</strong>.</p>
+<blockquote>
+<p>这里安利一下 <strong><a href="https://jitpack.io/docs/">jitpack</a></strong>, 使用它可以很容易将一个 Github 上 <strong>JVM</strong> 库项目自动构建并发布, 远远比往 Maven Central Repository 发布简单.</p>
+</blockquote>
+<h3 id="服务">服务</h3>
+<ol>
+<li>交代服务是用来解决什么问题的,</li>
+<li>罗列服务跑起来最简单的操作步骤,</li>
+<li>介绍服务的常用启动参数与配置.</li>
+</ol>
+<blockquote>
+<p>参见私货: <strong>https://github.com/zhongl/passport</strong></p>
+</blockquote>
+<p>同样, 为了方便别人快速体验你的服务, 或许提供现成 <strong>Docker Image</strong> 是个睿智的选择.</p>
+<blockquote>
+<p>Github 生态里有对开源项目免费的 CI/CD 服务, 如 <a href="https://travis-ci.org/">travis-ci.org</a>, <a href="https://circleci.com">circleci.com</a>. 强烈推荐使用它们帮助实现Docker Image 的持续构建与发布.</p>
+</blockquote>
+<h2 id="badges">Badges</h2>
+<p><img src="https://user-images.githubusercontent.com/419346/55405535-de9b1a80-558c-11e9-8685-3279507089de.png" alt="Github Badges" /></p>
+<p>上图中那些徽章你一定见过. 它们是<strong>锦上添花</strong>之用, 可以突显项目当前的状态, <strong>增强项目使用者的信心</strong>.</p>
+<p>如果你是个对代码质量要求比较高的人, 我这里推荐下面的代码状态服务:</p>
+<ul>
+<li><a href="https://travis-ci.org/">travis-ci.org</a> 或 <a href="https://circleci.com">circleci.com</a></li>
+<li><a href="https://coveralls.io/">coveralls.io</a></li>
+<li><a href="https://www.codacy.com/">codacy.com</a></li>
+</ul>
+<blockquote>
+<p>它们提供漂亮的<strong>Badges</strong></p>
+</blockquote>
+<h2 id="community">Community</h2>
+<p><strong>Github</strong> 在开源社区的建设上, 提供了很多便利的支持, 这里不详细展开, 如果你希望不仅仅是开源一个项目, 而是去打造一个社区, 那么不妨去深挖一下 <strong>Github</strong> 的官方博客或文档, 你一定会获益良多的.</p>
+<p><img src="https://user-images.githubusercontent.com/419346/55405581-fc687f80-558c-11e9-8653-8139213b3fa1.png" alt="Github Community" /></p>
+<blockquote>
+<p>在你的项目页中依次点击 <strong>Insights</strong> - <strong>Community</strong> 可见上图.</p>
+</blockquote>
+<p>Enjoy!</p>
+<div><a href="https://zhongl.github.io/tags/github" class="post-badge">github</a><a href="https://zhongl.github.io/tags/open-source" class="post-badge">open source</a><a href="https://github.com/zhongl/zhongl.github.com/issues/25" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

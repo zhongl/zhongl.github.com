@@ -1,0 +1,135 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">基于AOP的日志调试</h1><p class="post-meta">05 Apr 2010 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="debug by aop" />
+<input type="hidden" name="created" value="2010-04-05" />
+<h1 id="断点-vs-日志">断点 vs 日志</h1>
+<p>断点是我们日常开发最为常见和高效的调试手段, 相比较输入日志它给予更多的状态信息和灵活的观察角度, 但断点调试是有前提和局限的：</p>
+<ul>
+<li>需要一个界面友好, 功能强大的IDE,</li>
+<li>比较适合于在单机的开发环境中进行.</li>
+</ul>
+<p>企业应用开发中, 我们常常会遇到无法断点调试的窘境, 例如:</p>
+<ul>
+<li>这个异常仅在生产环境出现, 开发环境里无法重现;</li>
+<li>存在外部系统依赖, 开发环境无法模拟等.</li>
+</ul>
+<p>这迫使我们不得不回到<strong>日志调试</strong>的老路子上来.</p>
+<!--more-->
+<h1 id="print-vs-logging">Print vs Logging</h1>
+<p>简单点的话, 我们用:</p>
+<pre><code class="language-java">System.out.println(&quot;debug infomation&quot;);  
+</code></pre>
+<p>就是因为过于简单, 当需要更多信息(如线程, 时间等), 或是定义输出模式和形式就需要编写更多代码, 于是我们有了<a href="http://logging.apache.org/log4j">Log4j</a>.</p>
+<h1 id="为什么要基于aop">为什么要基于AOP</h1>
+<p>Log4j挺好用的, 只是与<code>System.out.print</code>一样, 在代码中随处可见, 但却没有业务价值.</p>
+<p>更令人头痛的是, 并非每次我们都有足够的经验告诉自己应该在哪里添加这些语句, 以致于调试中不断的因为调正它们的在代码中的位置, 而反复编译 - 打包 - 发布系统. 这种体力活, 太......</p>
+<p>换而言之, 我会希望:</p>
+<ul>
+<li>将Logging剥离于业务之外, 让代码更易于维护,</li>
+<li>无需重新编译,甚至能够运行时, 可调整输出日志的位置.</li>
+</ul>
+<p><a href="http://en.wikipedia.org/wiki/Aspect-oriented_programming">AOP</a>完全可以帮助我们做到上述两点.</p>
+<p>这完全不是什么新鲜观点, 这在任何介绍<a href="http://en.wikipedia.org/wiki/Aspect-oriented_programming">AOP</a>文章中, 都会提到Logging是其最典型的应用场景.</p>
+<p>所以这儿将基于<a href="http://code.google.com/p/google-guice/">Guice</a>, 讨论如何实现一个非侵入式的, 且能无需重新编译即可调正Logging位置的简单示例.</p>
+<h1 id="一个基于guice的示例">一个基于Guice的示例</h1>
+<p>我曾经用过一个叫<a href="http://log4e.jayefem.de/">Log4E</a>的Eclipse插件, 它可根据我们预先的配置, 自动的为我们在编写的代码中插入 logging 的语句, 如方法调用的进口和出口:</p>
+<pre><code class="language-java">public int sum(int a, int b){  
+  if (logger.isDebugEnabled()){  
+  	logger.debug(&quot;sum - start : a is &quot; + a + &quot;, b is &quot; + b);  
+  }  
+
+  int result = a + b;  
+
+  if (logger.isDebugEnabled()){  
+  	logger.debug(&quot;sum - end : return is &quot; + result);  
+  }  
+}  
+</code></pre>
+<p>从上例不难发现, 我们在调试过程中, 往往会通过一个方法的进入或退出的状态(参数, 返回值或异常)来分析问题出在什么地方. 那么, 借助 <strong>MethodInterceptor</strong> 我们可以这样做:</p>
+<h2 id="logging拦截器">Logging拦截器</h2>
+<pre><code class="language-java">public class LoggingInterceptor implements MethodInterceptor {  
+
+  @Override  
+  public Object invoke(MethodInvocation invocation) throws Throwable {  
+    try {  
+	  Object result = invocation.proceed();  
+      // logging 方法, 参数与返回值  
+      log(invocation.getMethod(), invocation.getArguments(), result);  
+      return result;  
+    } catch (Throwable throwable) {  
+      // logging 方法, 参数与异常  
+      error(invocation.getMethod(), invocation.getArguments(), throwable);  
+      throw throwable;  
+    }  
+  }  
+}  
+</code></pre>
+<p>接下来, 我们需要配置这个拦截器, 并向<a href="http://code.google.com/p/google-guice/">Guice</a>声明它.</p>
+<pre><code class="language-java">public class LoggingModule extends AbstractModule {  
+  @Override  
+  public void configure() {  
+  	bindInterceptor(Matchers.any(), Matchers.any(), new LoggingInterceptor());  
+  }    
+}  
+
+public class Main {  
+  public static void main(String[] args) {  
+  	Injector injector = Guice.createInjector(new BusinessModule(), new LoggingModule());  
+  }  
+}  
+</code></pre>
+<p>很简单, 不是吗? 这样我们的业务模块的代码完全不用编写输出日志的代码, 只需要在创建<code>Injector</code>的时候加入 <code>LoggingModule</code> 就可以了.</p>
+<p>等等, 好像忘了去实现如何配置日志输出的位置. 好吧, 这个其实很简单:</p>
+<h2 id="配置logging位置">配置Logging位置</h2>
+<pre><code class="language-java">bindInterceptor(Matchers.any(), Matchers.any(), new LoggingInterceptor());  
+</code></pre>
+<p><code>bindInterceptor</code>方法的第一个参数定义了拦截器将匹配所有类, 第二个参数定义了拦截器将匹配一个类所有方法. 那么, 我们要做的仅仅是通过外部参数调整这两个参数就可以啦. 这儿就演示一个用正则表达式匹配要<code>Logging</code>的方法的例子:</p>
+<pre><code class="language-java">public class MethodRegexMatcher extends AbstractMatcher&lt;Method&gt; {  
+  final Pattern pattern = Pattern.compile(System.getProperty(&quot;logging.method.regex&quot;, &quot;*&quot;));  
+
+  @Override  
+  public boolean matches(Method method) {  
+    return pattern.matcher(method.getName()).matches();  
+  }  
+
+}  
+</code></pre>
+<p>可惜这种方法不能在运行时调整, 但这也是可以实现的.</p>
+<h2 id="运行时配置logging位置">运行时配置Logging位置</h2>
+<p>还是以用正则表达式匹配要Logging的方法为例:</p>
+<pre><code class="language-java">public class LoggingInterceptor implements MethodInterceptor {  
+
+  private String regex = &quot;*&quot;;  
+
+  public void setMethodRegex(String regex){  
+    this.regex = regex;  
+  }  
+
+  @Override  
+  public Object invoke(MethodInvocation invocation) throws Throwable {  
+    String methodName = invocation.getMethod().getName();  
+
+    try {  
+      Object result = invocation.proceed();  
+	  if (methodName.matches(regex))  // logging 方法, 参数与返回值  
+        log(invocation.getMethod(), invocation.getArguments(), result);  
+
+      return result;  
+	} catch (Throwable throwable) {  
+      if (methodName.matches(regex))  // logging 方法, 参数与异常  
+        error(invocation.getMethod(), invocation.getArguments(), throwable);  
+      throw throwable;  
+    }  
+  }  
+}  
+</code></pre>
+<p>而后可借助JMX动态调整regex的值, 来实现运行时的配置.</p>
+<p>小结</p>
+<p>本文仅以<a href="http://code.google.com/p/google-guice/">Guice</a>为例讨论如何改进我们日常开发中调试的问题, 其实这在Spring应用也同样能够实现的, 甚至其它应用<a href="http://en.wikipedia.org/wiki/Aspect-oriented_programming">AOP</a>的场景都是可行的.</p>
+<p>拓展开来, 不仅是Logging, 说不定验证(测试)也是可行的呢!</p>
+<blockquote>
+<p>思想有多远, 我们就能走多远!</p>
+</blockquote>
+<div><a href="https://zhongl.github.io/tags/aop" class="post-badge">aop</a><a href="https://zhongl.github.io/tags/guice" class="post-badge">guice</a><a href="https://zhongl.github.io/tags/java" class="post-badge">java</a><a href="https://zhongl.github.io/tags/log4j" class="post-badge">log4j</a><a href="https://github.com/zhongl/zhongl.github.com/issues/2" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

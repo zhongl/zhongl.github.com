@@ -1,0 +1,59 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">复用命令行的小技巧</h1><p class="post-meta">06 Feb 2015 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="how to reuse command line" />
+<input type="hidden" name="created" value="2015-02-06" />
+<p>重复执行同一个命令行不在此文讨论(需要讨论吗?).</p>
+<h2 id="背景">背景</h2>
+<p>一个简单的场景, <code>kill</code> 一个名为<code>Main</code>的<code>Java</code> 进程, 比较土的办法是:</p>
+<pre><code class="language-shell">&gt; jps
+2817 Jps
+11917 Main
+2584 NettyServer
+&gt; kill 11917
+</code></pre>
+<!--more-->
+<p>每次执行都要肉眼识别<code>Main</code>进程的<code>PID</code>, 效率低, 容易错. 简单的改进是这样的:</p>
+<pre><code class="language-shell">&gt; jps | awk '$2 ~ /Main/ {print $1}' | xargs kill
+</code></pre>
+<p>看上去不错! 问题来了, 若是复用上面的命令行去<code>kill</code> 另一个进程呢, 比如 <code>NettyServer</code> ?</p>
+<h2 id="方案">方案</h2>
+<p>在<code>~/.bashrc</code>中定义一个函数<code>jstop</code> :</p>
+<pre><code class="language-bash">#.bashrc
+
+jstop() {
+ jps | awk  &quot;\$2 ~ /$1/ {print \$1}&quot; | xargs kill
+}
+</code></pre>
+<p>在<code>source ~/.bashrc</code>后, 就可以<code>jstop NettyServer</code>了.</p>
+<h2 id="还没完">还没完</h2>
+<p>如果只是这样, 就 <strong>兔养兔新破</strong> 了.</p>
+<p>类似这样一行命令的函数, 随着积累的过程中, 频繁编辑<code>~/.bashrc</code>挺烦的.</p>
+<p>这儿提供一劳永逸的方案: <strong>定义一个定义函数的函数</strong>, 如下:</p>
+<h3 id="for-linux">For Linux</h3>
+<pre><code>sed -i '2 i func() {\n  sed -i &quot;2 i $1() {\\n $2 \\n}\\n&quot; ~/.bashrc\n source ~/.bashrc\n}' ~/.bashrc;source ~/.bashrc
+</code></pre>
+<h3 id="for-mac-osx">For Mac OSX</h3>
+<pre><code>sed -i '' '2 i\
+func() {\
+  sed -i &quot;&quot; &quot;2 i\\\\\
+  $1() {\\\\\
+    $2\\\\\
+  }\\\\\
+  \\\\\
+  &quot; ~/.bash_profile; source ~/.bash_profile\
+}\
+\
+' ~/.bashrc_profile; source ~/.bash_profile
+</code></pre>
+<p>在终端执行上面的命令行, 就可以这样定义<code>jstop</code>了:</p>
+<pre><code>func jstop 'jps | awk &quot;\\$2 ~ /$1/ {print \\$1}&quot; | xargs kill'
+</code></pre>
+<h2 id="参考">参考</h2>
+<ul>
+<li><a href="http://coolshell.cn/articles/9104.html">sed简明教程</a></li>
+<li><a href="http://coolshell.cn/articles/9070.html">awk简明教程</a></li>
+<li><a href="http://stackoverflow.com/questions/11003418/calling-functions-with-xargs-within-a-bash-script">Calling functions with xargs within a bash script</a></li>
+</ul>
+<div><a href="https://zhongl.github.io/tags/awk" class="post-badge">awk</a><a href="https://zhongl.github.io/tags/bash" class="post-badge">bash</a><a href="https://zhongl.github.io/tags/function" class="post-badge">function</a><a href="https://zhongl.github.io/tags/sed" class="post-badge">sed</a><a href="https://zhongl.github.io/tags/shell" class="post-badge">shell</a><a href="https://github.com/zhongl/zhongl.github.com/issues/11" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

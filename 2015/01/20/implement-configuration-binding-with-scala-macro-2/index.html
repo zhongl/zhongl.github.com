@@ -1,0 +1,76 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">使用 Scala Macro Annotation 实现配置项绑定（中）</h1><p class="post-meta">20 Jan 2015 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="implement configuration binding with scala macro 2" />
+<input type="hidden" name="created" value="2015-01-20" />
+<h2 id="v012">v0.1.2</h2>
+<p>续 [上篇][last], 因 <a href="http://weibo.com/lianchengzju?from=profile&amp;wvr=6">@连城404</a> 的转发<a href="http://www.weibo.com/1650016175/C0aW9dp3T?ref=atme&amp;type=comment">原文</a>:</p>
+<blockquote>
+<p>@连城404:很有趣，有可能把 @conf val port = 0 中的 &quot;= 0&quot; 去掉换成现实的类型说明吗？即 @conf port: Int 这个赋值在此处完全没有实际意义，更像是实现限制而引入的噪声。</p>
+</blockquote>
+<pre><code class="language-scala">class Server {
+  @conf val port = 0
+  //  上面的赋值闲得多余, 可以写成:
+  // @conf val port: Int
+}
+</code></pre>
+<p>确实没有必要, 但意义还是有的:  <strong>IDE 不会报错</strong>. (至少我用的IDEA 14 的 scala plugin 还不支持 Scala Macro)</p>
+<p>那 <code>= 0</code> 可以去掉吗?</p>
+<p>答案是可以, 只是在被 <a href="http://weibo.com/lianchengzju?from=profile&amp;wvr=6">@连城404</a> 问到的时候我还没有想到办法.</p>
+<!--more-->
+<p>解决办法方法其实不难, 前提是要对 <code>Scala AST</code> 很熟悉.</p>
+<p>经查:</p>
+<pre><code class="language-scala">case class ValDef(mods: Modifiers, name: TermName, tpt: Tree, rhs: Tree)
+</code></pre>
+<p><code>Modifiers</code> 中有个 <code>flags</code> 属性, 其中标记了<code>val port</code> 的各种特征.</p>
+<p>那么 <code>val port: Int</code> 和 <code>val port = 0</code> 之间的区别则可以从 <code>flags</code> 中体现出来.</p>
+<pre><code class="language-scala">class ModifierFlags {
+  final val DEFERRED      = 1 &lt;&lt; 4        // was `abstract' for members | trait is virtual
+  final val DEFAULTINIT   = 1L &lt;&lt; 41      // symbol is initialized to the default value: used by -Xcheckinit
+
+  ...
+}
+</code></pre>
+<p><code>ModifierFlags</code> 里定义了所有的 <code>flags</code> 值, 这里摘录其中两个枚举则对应上面两种不同的写法.</p>
+<p>具体实现的代码的提交, 请见<a href="https://github.com/zhongl/config-annotation/commit/0475d92c793b129c704c259cf1d509b025fca699">0475d92c</a>.</p>
+<blockquote>
+<p>如何发现这些细节 ?</p>
+</blockquote>
+<blockquote>
+<ul>
+<li><code>print(x)</code>, 探查未知对象的展现信息, 多半能够提供重要线索;</li>
+<li><code>print(x.getClass)</code>, 上面的办法不管用, 则需要查明它的类型, 然后去翻源码了.</li>
+</ul>
+</blockquote>
+<h2 id="v020">v0.2.0</h2>
+<p>上面 <code>v0.1.x</code> 是一种基于<code>ValDef</code> 的声明风格, 实际使用的时候会发现:</p>
+<p><strong>编写简单的同时, 代价是类名定义要与配置路径要严格一致, 这并非适合所有场景</strong></p>
+<p>比如写个 <code>Kafka</code> 的消费客户端, 要为它设计其访问服务的配置项</p>
+<pre><code class="language-scala">kafka_broker {
+  host = 10.0.0.1
+  port = 12306
+}
+</code></pre>
+<p>此时, 对应的类名就要是<code>KafkaBroker</code>, 这显然违背了设计意图,  像 <code>KafkaConsumer</code> 才是最为自然的选择.</p>
+<p>与其大量时间纠结于命名上, 不如换个更好的声明方式.</p>
+<p><em>让 <code>@conf</code> 带参数可以更改默认配置项路径</em> :</p>
+<pre><code class="language-scala">class KafkaConsumer {
+  @conf(&quot;kafka_broker.host&quot;) val host: String
+}
+</code></pre>
+<p>嗯, 不错, 能够解决问题. 只是觉得像绕了一圈又回去了的感觉:</p>
+<pre><code class="language-scala">class KafkaConsumer {
+  val host = conf.getString(&quot;kafka_broker.host&quot;)
+}
+</code></pre>
+<p>对比这两种写法, 前者似乎没什么优势了.</p>
+<p>回顾用 <code>Macro Annotation</code> 解决配置项绑定的初衷, 是希望 <strong>将代码的元信息与配置项建立映射关系, 减少因中间字符串的 Hard Code 为重构带来的额外成本</strong>.</p>
+<p>为此, 另一种写法诞生了, 它是受这篇 [Adding Reflection to Scala Macros][reflect] 的启发.</p>
+<p>其中的细节请见 <code>v0.2.0</code> 的 [README][readme], 就不累述于此了.</p>
+<p>这种新写法还有个好处, 就是能够方便通过从代码来生成配置文件, 转义的代价很小.</p>
+<p>嗯...再写个 <code>sbt plugin</code> 吧 :)</p>
+<p>[last]:{% post_url 2015-01-17-implement-configuration-binding-with-scala-macro-1 %}
+[reflect]: http://imranrashid.com/posts/scala-reflection/
+[readme]: https://github.com/zhongl/config-annotation/tree/v0.2.0</p>
+<div><a href="https://zhongl.github.io/tags/annotation" class="post-badge">annotation</a><a href="https://zhongl.github.io/tags/configuration" class="post-badge">configuration</a><a href="https://zhongl.github.io/tags/macro" class="post-badge">macro</a><a href="https://zhongl.github.io/tags/scala" class="post-badge">scala</a><a href="https://github.com/zhongl/zhongl.github.com/issues/8" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

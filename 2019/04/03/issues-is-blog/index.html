@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">Issues就是一个Blog</h1><p class="post-meta">03 Apr 2019 @<a href="https://github.com/zhongl">zhongl</a></p><input type='hidden' name='id' value='issues is blog' />
+<p><a href="http://cafusic.lofter.com/post/1d7be719_10dab14f"><img src="http://imglf1.nosdn.127.net/img/c0NkZC8xc3QzeVF5dEY5OWJtcTFpNFhKRDRGeFR5NlY0OXo2ZmQ3dDZmSW9kaVBJNFhFaGNBPT0.png?imageView&amp;thumbnail=2000y2500&amp;type=jpg&amp;quality=96&amp;stripmeta=0&amp;type=jpg" alt="bird or boat" /></a></p>
+<blockquote>
+<p>孤雁? 孤舟!</p>
+</blockquote>
+<p>几年前就看到有人用 Github Issues 写 Blog, 尽管这是个很酷也很务实的玩法, 但考虑它无法提供一个<strong>沉浸式的阅读</strong>体验, 我也就一笑而过了.</p>
+<blockquote>
+<p>Issue 与 Post 二者之间的共同特质是: <strong>归档</strong> 与 <strong>沟通</strong>.</p>
+</blockquote>
+<p>一直以来我都是用 <a href="https://help.github.com/en/articles/using-jekyll-as-a-static-site-generator-with-github-pages">GitHub Pages</a>  和 <a href="https://github.com/jekyll/jekyll">Jekyll</a> 来搭一个 <strong>Serverless</strong> 的 Blog, 功能虽有限, 但好在对我来说够用且<strong>省心</strong>. 倒不是说, 我不想要额外的功能(如评论), 只是要投入更多时间研究 <a href="https://github.com/jekyll/jekyll">Jekyll</a> 插件, 总认为对我这种随机写作的人是不值得的.</p>
+<p>“若是将 Issues 作为 Post 存取载体, 借助 <a href="https://developer.github.com/v3/issues/">API</a> 给换一个<strong>沉浸式的阅读</strong>体验的外壳呢?” 这是前些天, 我脑子里蹦出的想法. 此外, 知道 <a href="http://ammonite.io/">Ammonite</a> 很久, 一直没有个合适场景发挥它的优势, 于是我有动力来干这件事了.</p>
+<pre><code class="language-scala">// Domain Model
+type Transform[Issue, Fragment] = Issue =&gt; Fragment
+type Render[Layout, Fragment, Doc] = Layout =&gt; Fragment =&gt; Doc
+</code></pre>
+<p>看似一句话的事情, 我还是断断续续弄了好些天. 遇到几个纠结耗时小坎:</p>
+<ul>
+<li><a href="#模版">模版</a></li>
+<li><a href="#迁移">迁移</a></li>
+<li><a href="#m2h">M2H</a></li>
+<li><a href="#发布">发布</a></li>
+</ul>
+<h3 id="模版">模版</h3>
+<p>起初, 考虑到未来想把它工具化, 用户只要懂 HTML 就可以很容易上手, 在选择模版选型上, 尽可能避免混合控制逻辑代码.</p>
+<blockquote>
+<p><a href="https://github.com/scalate/scalate">Scalate</a> 总结了各类风格模版引擎:</p>
+<ul>
+<li><strong>Mustache</strong> which is a Scala dialect of Mustache for logic-less templates which also work inside the browser using mustache.js</li>
+<li><strong>Scaml</strong> which is a Scala dialect of Haml and is very DRY for generating HTML / XHTML</li>
+<li><strong>Jade</strong> which is an even more DRY dialect of Scaml for HTML / XHTML markup generation</li>
+<li><strong>SSP</strong> which is like Velocity, JSP or Erb from Rails</li>
+</ul>
+</blockquote>
+<p>与此同时要想兼顾模版定制的灵活性, 那么实现的复杂度就会增加. 最终, 我选择了<a href="http://www.lihaoyi.com/scalatags/">Scalatags</a>, 理由是实现复杂度低, 定制灵活性高, 其 API 的设计风格与原生 HTML 也接近. 唯一不足是, 它是 <a href="https://en.wikipedia.org/wiki/Domain-specific_language#Usage_patterns">Embedded DSL</a>, 因而需要使用者熟悉一点 Scala 语言.</p>
+<h3 id="迁移">迁移</h3>
+<p>之前的 Blog 已经积累了 25 篇 Markdown 写的 Post 需要迁移到 Issues 里. 要处理的问题有:</p>
+<ol>
+<li>文章标题有中英两种:
+<ol>
+<li>中文的需要从 Markdown 文件中<strong>提取</strong>, 转换为 Issue 的 Title,</li>
+<li>英文的需要<strong>保留</strong>作为站点生成的页面路径, 比如: <code>https://zhongl.github.io/2019/03/07/how-to-open-a-fancy-source-on-github/</code></li>
+</ol>
+</li>
+<li>转为 Issue 后, 原始文章的发布时间 Issue 没有保存(Issue的创建时间没法修改),</li>
+<li>原始文章中的标签, 需要转换为 Issue 的 Label.</li>
+</ol>
+<p>本想借用一些在线翻译服务来实现根据中文标题自动生成英文的, 可是一方面从页面挖掘 API 比较耗时, 另一方面随着时间的推荐翻译的结果可能有变, 这导致生成的路径链接不稳定, 于是作罢了.</p>
+<p>比较稳妥的方式是, 在 Issue 的 Body 里用不可见元素存储标题和日期等这类信息.</p>
+<pre><code class="language-html">&lt;input type='hidden' name='created' value='2008-04-13' /&gt;
+</code></pre>
+<p>好在, <a href="https://jsoup.org/">Jsoup</a>可以很容易帮我在 Markdown 里 Body 找到它们.</p>
+<h3 id="m2h">M2H</h3>
+<p><a href="https://developer.github.com/v3/media/#comment-body-properties">Github API 提供 Media Type 内容参数</a>, 也就是说, Markdown 写的 Issue, API 可以直接获取渲染成 HTML 的结果. 本以为可以省掉自己解析渲染的工作, 可惜 Github 提供的 Markdown 语法支持有限, 比如我很喜欢的 <code>[TOC]</code> 就不支持, 只好借助 <a href="https://github.com/vsch/flexmark-java">flexmark-java</a> 自己来干了.</p>
+<blockquote>
+<p>Post 中的代码片段语法高亮, 还没有想到轻量级的解决方案, 故而暂时没有支持.</p>
+</blockquote>
+<h3 id="发布">发布</h3>
+<p>犯了一个想当然的错误, 没有预先验证, 做到最后发现预设的自动发布方案行不通. 即, 通过 Repo 集成 <a href="https://travis-ci.org">travis-ci</a>, 由 Issue 事件来触发 Blog 生成任务, 进而实现一旦新的 Issue 一提交就自动发布更新 Blog.</p>
+<p>不幸的是, 只有 Pull Request 才可以触发任务, 普通的 Issue 是不支持的. 考虑过使用 PR 来写 Post, 但新建 PR 需要有分支去合并做前提, 这就没有必要了.</p>
+<p>还好, <a href="https://travis-ci.org">travis-ci</a> 提供 Cron Jobs 功能, 做不到秒级实时更新,  还是能做到 24h 内自动更新的, 对于更新不怎么频繁的 Blog 场景而言够用了.</p>
+<blockquote>
+<p>对我个人而言, Cron Jobs 按周运行一次也够用了.</p>
+</blockquote>
+<p>如果有兴趣了解更多, 请移步<a href="https://github.com/zhongl/zhongl.github.com/">Repo</a>. 也欢迎在评论中与我讨论更有意思的想法.</p>
+<p>Enjoy!</p>
+<div><a href="https://zhongl.github.io/tags/ammonite" class="post-badge">ammonite</a><a href="https://zhongl.github.io/tags/github" class="post-badge">github</a><a href="https://github.com/zhongl/zhongl.github.com/issues/26" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

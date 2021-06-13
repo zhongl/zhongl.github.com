@@ -1,0 +1,49 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">一个系统过载的案例及其解决办法</h1><p class="post-meta">12 Nov 2012 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="a use case of system overload" />
+<input type="hidden" name="created" value="2012-11-12" />
+<p>系统出现过载现象(或问题)的原因和场景有很多, 这里并不试图归纳总结; 而是如题, 就一个特定的案例, 分享一些过载保护的实践办法.</p>
+<h2 id="案例">案例</h2>
+<blockquote>
+<p>系统R需要通过轮询(读取)数据库中存储的记录状态, 进行一些业务补偿的操作, 而后再对数据库的状态进行更新.</p>
+<p>轮询机制实现并未采用定时周期的方式, 而是采用 <strong>请求 - 响应 - 再请求</strong> 的事件驱动方式.</p>
+<p>在压测的时候发现, 数据库访问(无论读写)大量失败, 错误日志狂刷.</p>
+</blockquote>
+<!--more-->
+<h2 id="分析">分析</h2>
+<p>经排查, 由于数据库被多个系统公用, 其它系统的一些SQL执行耗时超长, 资源占用过多, 导致系统R的数据库访问请求超时失败, 而失败后的不断重试, 变本加厉, 最终数据库撑不住挂了.</p>
+<p>类似的典型场景, 如 <strong>秒杀</strong> :</p>
+<blockquote>
+<p>海量并发请求下, 系统已经出现过载, 请求响应过缓, 而用户耐不住, 则不断尝试刷新页面, 寄期望于请求被响应. 可事与愿违, 系统在没有保护的情况下, 将持续超过载的状态, 直到 <strong>宕机</strong>.</p>
+</blockquote>
+<h2 id="解决">解决</h2>
+<p>面对过载, 可能最容易被想到的是 <strong>扩容</strong>. 是的, 它是一种不降低服务质量的必不可少的预防方案, 但我们不得不接受一个事实:</p>
+<blockquote>
+<p>系统的容量(或处理能力)始终是有限的, 即使不考虑成本的扩容, 也只能应付你可以预见程度, 一旦有个&quot;万一&quot;, 系统仍将崩溃.</p>
+</blockquote>
+<p>若服务可以降级, 则 <strong>限流</strong> 是能够应对&quot;万一&quot;的良方, 下面就 <strong>限流</strong> 这个思路, 分享几个办法.</p>
+<h3 id="定时">定时</h3>
+<p>将轮询改用定时来实现, 就可以保证稳定的访问节奏, 加之一旦支持动态修改定时周期时间, 便可以根据实际情况灵活调整节奏了.</p>
+<p>不仅做到了 <strong>限流</strong> , 更是做到了 <strong>流控</strong>, 不错.</p>
+<p>可以实际应用中会发现, 初始的定时周期很难找到合适的值, 需要在处理实时性和请求量之间平衡.</p>
+<blockquote>
+<p>个人不太喜欢用定时方案, 它不仅让单元测试结果不稳定, 还浪费线程.</p>
+</blockquote>
+<h3 id="休息">休息</h3>
+<p><strong>请求 - 响应 - 再请求</strong> 的事件驱动的轮询方式, 有个好处: 就是在正常情况下, 让访问节奏由数据库说了算, 即数据库响应快, 轮询则快, 反之则放缓. 只可惜异常的情况下, 就如案例中那样.</p>
+<p>休息很好理解:</p>
+<blockquote>
+<p>若人累了, 就不要继续强撑, 让身体休息一会(踹口气), 再恢复工作.</p>
+</blockquote>
+<p>同理, 当数据库访问失败后, 优雅地拒绝掉随后若干次请求, 让数据库休息一会.</p>
+<p>如何做到优雅? 就本案例而言则是, 读取失败后的若干次请求迅速返回空集合. 总之, 拒绝可以是除抛异常外, 任何对处理逻辑有意义的默认<code>NULL</code>结果.</p>
+<p>若干次到底是多少次? 这与选择定时时间一样是需要平衡的.</p>
+<h3 id="补偿">补偿</h3>
+<p>本案例中轮询的读取失败返回空集合是个好的休息办法, 可要是状态更新失败呢? 没法返回结果, 只能抛异常, 但异常又会导致重试, 这不仅没让数据库休息, 且可能导致大量<code>ERROR Stacktrace</code>日志输出.</p>
+<p>不抛异常, 而将异常转换为一次失败记录(日志), 这些记录可以用来对数据库状态的不一致进行补偿操作, 具体如何补偿, 什么时机开始补偿, 这里就不展开细说了, 它们都需要由业务场景来决定.</p>
+<hr />
+<p>写在最后, 上述三种办法都不是银弹, 也并非互斥, 完全可以根据情况结合使用的.</p>
+<p>The end.</p>
+<div><a href="https://zhongl.github.io/tags/recovery" class="post-badge">recovery</a><a href="https://zhongl.github.io/tags/system" class="post-badge">system</a><a href="https://github.com/zhongl/zhongl.github.com/issues/5" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

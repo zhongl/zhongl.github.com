@@ -1,0 +1,112 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">使用 Scala Macro Annotation 实现配置项绑定（上）</h1><p class="post-meta">17 Jan 2015 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="implement configuration binding with scala macro 1" />
+<input type="hidden" name="created" value="2015-01-17" />
+<h2 id="故事是这么开始的">故事是这么开始的</h2>
+<p>在用 <a href="http://docs.scala-lang.org/overviews/macros/overview.html">Scala Macro</a> Annotation 实现之前, 我是根据 <a href="http://akka.io">Akka</a> 官方文档建议的 <a href="http://doc.akka.io/docs/akka/2.3.8/java/extending-akka.html">扩展</a> 机制来绑定配置:</p>
+<pre><code class="language-scala">class SettingsImpl(config: Config) extends Extension {
+  import config._
+  val BrokerHost = getString(&quot;kafka_consumer.broker.host&quot;)
+  val BrokerPort = getInt(&quot;kafka_consumer.broker.port&quot;)
+}
+
+object Settings extends ExtensionId[SettingsImpl] with ExtensionIdProvider {
+  def createExtension(system: ExtendedActorSystem) = new SettingsImpl(system.settings.config)
+  def lookup() = Settings
+}
+
+class KafkaConsumer extends Actor {
+  val settings = Settings(context.system)  
+  val brokerHost = settings.BrokerHost
+  val brokerPort = settings.BrokerPort
+
+  def receive = ???
+}
+</code></pre>
+<p><code>application.conf</code> 除了<code>akka</code> 外, 加入扩展的内容:</p>
+<pre><code class="language-scala">akka { ... }
+
+kafka_consumer.broker {
+  host:10.0.0.1
+  port:9092
+}
+</code></pre>
+<!--more-->
+<p>随着配置项个数增加一个量级, 这类 <code>getXxx(...)</code> 写得也是让我 <strong>醉了</strong>, 更不要谈重构的时候...[不忍直视]</p>
+<h2 id="活不能再这么糙下去">活不能再这么糙下去</h2>
+<p>我开始寻思着能不能这样:</p>
+<pre><code class="language-scala">class KafkaConsumer extends Actor {
+  @conf val brokerHost = &quot;&quot;
+  @conf val brokerPort = 0
+}
+</code></pre>
+<p>然后让编译器 <strong>智能</strong> 的帮我 <strong>挡酒</strong> , 她酒量可比我好太多了.</p>
+<h2 id="踏上去往天堂的路">踏上去往<a href="https://github.com/scalamacros/sbt-example-paradise">天堂</a>的路</h2>
+<p>下面就是我以 <a href="https://github.com/scalamacros/sbt-example-paradise">sbt-example-paradise</a> 为基础实现的步骤:</p>
+<h3 id="say-hello-to-hell">Say hello to hell</h3>
+<p>修改 <a href="https://github.com/scalamacros/sbt-example-paradise/blob/master/core/src/main/scala/Test.scala">Test.scala</a> 为:</p>
+<pre><code class="language-scala">object Test extends App {
+  @hello val i = 0
+  println(i)
+}
+</code></pre>
+<p>执行 <code>sbt clean run</code>, 不出意料, 报错了:</p>
+<pre><code class="language-shell">[error] scala.MatchError: List(val i = 0) (of class scala.collection.immutable.$colon$colon)
+[error] 	at helloMacro$.impl(Macros.scala:10)
+[error]   @hello val i = 0
+[error]
+</code></pre>
+<h3 id="穿越森林">穿越森林</h3>
+<p>显然 <a href="https://github.com/scalamacros/sbt-example-paradise/blob/master/macros/src/main/scala/Macros.scala">Macros.scala</a> 中 <code>match case</code> 没有考虑 <code>@hello</code> 在 <code>val</code> 上的情况,  那不如先来看看它是啥:</p>
+<pre><code class="language-scala">annottees.map(_.tree).toList match {
+  case t :: Nil =&gt; println(t.getClass); t
+}
+</code></pre>
+<p>其实前面的错误信息已经 暗示了 <code>t</code>  的内容是 <code>val i = 0</code>, 因此<code>println(t)</code> 已经没有意义了, 但弄清它的类型, 有助于替换 <strong><code>=</code>右边的部分</strong> .</p>
+<p><code>sbt clean run</code> :</p>
+<pre><code class="language-shell">class scala.reflect.internal.Trees$ValDef
+[info] Running Test
+0
+</code></pre>
+<p>去查看 <code>ValDef</code> 源码, 你会发现:</p>
+<pre><code class="language-scala">case class ValDef(mods: Modifiers, name: TermName, tpt: Tree, rhs: Tree) ...
+</code></pre>
+<blockquote>
+<p>这一步已经涉及抽象语法树的范畴, 有兴趣的请阅读 <a href="http://http://docs.scala-lang.org/overviews/reflection/symbols-trees-types.html">reflection</a> 中的 <code>Tree</code> 的部分</p>
+</blockquote>
+<p>啊哈, 这也就意味着可以这样写:</p>
+<pre><code class="language-scala">annottees.map(_.tree).toList match {
+  case (t @ ValDef(mods, name, tpt, rhs)) :: Nil =&gt; println(rhs); t
+}
+</code></pre>
+<p>直觉告诉我 <code>rhs</code> 就是 <code>0</code>, <code>sbt clean run</code> :</p>
+<pre><code class="language-shell">0
+[info] Running Test
+0
+</code></pre>
+<h3 id="天堂之门">天堂之门</h3>
+<p>现在, 只要弄清楚怎么构造我想要的 <code>rhs</code> 就可以达到目的了. 怎么做呢, 看看 <a href="https://github.com/scalamacros/sbt-example-paradise/blob/master/macros/src/main/scala/Macros.scala">Macros.scala</a> 的示范, 不难想到:</p>
+<pre><code class="language-scala">annottees.map(_.tree).toList match {
+  case ValDef(mods, name, tpt, rhs) :: Nil =&gt; ValDef(mods, name, tpt, q&quot;10&quot;)
+}
+</code></pre>
+<p><code>sbt clean run</code> :</p>
+<pre><code class="language-shell">[info] Running Test
+10
+</code></pre>
+<blockquote>
+<p>q&quot;...&quot; 是一种叫 <a href="http://docs.scala-lang.org/overviews/quasiquotes/setup.html">quasiquotes</a> 的特性, 它使得构造语法树过程的变得异常的简单</p>
+</blockquote>
+<h3 id="如果说在地狱是受虐-那在天堂其实是自虐">如果说在地狱是受虐, 那在天堂其实是自虐</h3>
+<p>请不要天真的以为将 <code>q&quot;0&quot;</code> 改成 <code>q&quot;&quot;&quot;config.getInt(&quot;test.i&quot;)&quot;&quot;&quot;</code> 就大功告成, 后面还有很多问题:</p>
+<ul>
+<li><code>config</code> 对象引用从哪里来?</li>
+<li><code>@conf</code> 修饰的值类型怎么判断?</li>
+<li>为什么不用<code>case q&quot;...&quot; =&gt;</code> 来替代 <code>case ValDef(...) =&gt;</code> ?</li>
+<li>如何兼容 <code>2.10</code> 到 <code>2.11</code> 版本之间的差异?</li>
+</ul>
+<p>这些问题的留个大家一起思考,  也可以关注我的开源项目 <a href="https://github.com/zhongl/config-annotation/tree/v0.1.1">config-annotation</a> 与我一起探讨.</p>
+<p>更为复杂的案例请见<a href="http://eng.kifi.com/scala-macro-annotations-real-world-example/">json-annotation</a>.</p>
+<div><a href="https://zhongl.github.io/tags/annotation" class="post-badge">annotation</a><a href="https://zhongl.github.io/tags/configuration" class="post-badge">configuration</a><a href="https://zhongl.github.io/tags/macro" class="post-badge">macro</a><a href="https://zhongl.github.io/tags/scala" class="post-badge">scala</a><a href="https://github.com/zhongl/zhongl.github.com/issues/7" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

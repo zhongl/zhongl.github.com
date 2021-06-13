@@ -1,0 +1,35 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">支持配额的共享线程池</h1><p class="post-meta">05 Mar 2011 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="a thread pool with quota" />
+<input type="hidden" name="created" value="2011-03-05" />
+<p>受 <a href="http://weibo.com/fangweng">@放翁_文初</a> 的 <a href="http://www.blogjava.net/cenwenchu/archive/2011/03/01/345387.html">逻辑划分线程池</a> 一文的启发, 用了几个小时动手实现了一个简陋支持配额的共享线程池. 基本思路与放翁相同, 区别在于引入了两种线程分配策略:</p>
+<!--more-->
+<h2 id="悲观策略">悲观策略</h2>
+<p>简单的共享一个线程池, 最容易出现的问题就是不同类型任务(或事件)在随机争抢线程资源时, 可能出现<strong>饿死</strong>现象(即抢不到线程).</p>
+<p>因此, 悲观策略的宗旨是<strong>绝对的保证每种任务都会被分配到预留的(reserve)配额</strong>, 这种做法本质上和多个线程池的做法一样.</p>
+<blockquote>
+<p>如总共100个线程, A任务可用50个线程, B任务可用30个线程, C任务可用20个, 三者互不占用.</p>
+<p>一旦, 任意谁的任务实例超过配额, 将被迫等待直至先前的任务实例结束释放了线程.</p>
+</blockquote>
+<p>统一到一个共享的池中:</p>
+<ul>
+<li>好处自然是归一化管理, 容易从全局上比较不同任务的优先级, 做出合理的资源分配;</li>
+<li>坏处可能就是需要去实现这样一个支持配额的共享线程池. 当然, 若不觉得多个线程池有什么不好, 悲观策略其实意义不大:(.</li>
+</ul>
+<h2 id="乐观策略">乐观策略</h2>
+<p>无论是使用悲观策略的共享线程池, 还是精心规划多个线程池, 由于都是预定义, 难免在环境变化过程中出现线程资源不足或闲置的情况.</p>
+<p>要是可以这样, 某个时段当A任务较少时,  它所闲置的线程能协调给负载较高的B任务, 那就完美了!</p>
+<p>故,  共享线程池的乐观策略就是在保证每种任务预留最低资源的情况下, 允许任务依据一个弹性(elastic)配额去争抢线程资源, 达到线程利用率的最大化.</p>
+<blockquote>
+<p>如有100个线程的池, A任务大部分的时候负载较高, 则给予50个的预留配额, 30个的弹性配额; 而B任务是偶尔某个时段复杂较高, 则给予20个线程的预留配额, 30个的弹性配额, 这样留了一个30个线程的资源空间, 让AB去合理竞争.</p>
+</blockquote>
+<hr />
+<p>很多实现的细节, 还请参见源代码:</p>
+<ul>
+<li><a href="https://github.com/zhongl/jtoolkit/blob/master/common/src/test/java/com/github/zhongl/jtoolkit/CentralExecutorTest.java">CentralExecutorTest.java</a></li>
+<li><a href="https://github.com/zhongl/jtoolkit/blob/master/common/src/main/java/com/github/zhongl/jtoolkit/CentralExecutor.java">CentralExecutor.java</a></li>
+</ul>
+<p>The end.</p>
+<div><a href="https://zhongl.github.io/tags/concurrency" class="post-badge">concurrency</a><a href="https://zhongl.github.io/tags/java" class="post-badge">java</a><a href="https://zhongl.github.io/tags/thread" class="post-badge">thread</a><a href="https://github.com/zhongl/zhongl.github.com/issues/3" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

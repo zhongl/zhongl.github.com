@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">一个简单易行的Gitlab项目分支管理办法</h1><p class="post-meta">03 Jun 2016 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="a simple strategy of branch management" />
+<input type="hidden" name="created" value="2016-06-03" />
+<pre><code>master
+   + -----&gt; release/1.0                                     (1)
+   |            + ------------&gt; issue/1                     (2)
+   |            |                  |
+   |            | &lt;----- MR ------ +                        (3)
+   |            |                                           (4)
+   + &lt;--- MR ---+                                           (5)
+   |  &lt;tag:v1.0&gt;                                            (6)
+</code></pre>
+<!--more-->
+<ol>
+<li>
+<p>项目 <strong>Owner</strong> 负责创建当前待发布的分支，如<code>master&gt; git checkout -b release/1.0</code>，</p>
+</li>
+<li>
+<p>项目 <strong>Developer</strong> 根据已提交的 <strong>issue</strong> 创建对应的开发分支，如 <code>release/1.0&gt; git checkout -b issue/1</code>，</p>
+</li>
+<li>
+<p>项目 <strong>Developer</strong> 完成开发后，发起由<code>issue/1</code>到<code>release/1.0</code>的<strong>Merge Request</strong>给项目 <strong>Owner</strong>，</p>
+<ul>
+<li>可并行开发 <strong>issue</strong>， 同样执行步骤 <strong>2</strong> ~ <strong>3</strong></li>
+</ul>
+</li>
+<li>
+<p>项目 <strong>Owner</strong> 审查过代码后，合并代码才可<strong>提交测试</strong>， 若出现 <strong>Bug</strong>，则执行执行步骤 <strong>2</strong> ~<strong>3</strong>，</p>
+</li>
+<li>
+<p>项目 <strong>Tester</strong> 测试全部通过后，发起由<code>release/1.0</code>到<code>master</code>的<strong>Merge Request</strong>给项目 <strong>Owner</strong>，</p>
+</li>
+<li>
+<p>项目 <strong>Owner</strong> 合并代码并打标签<code>v1.0</code>，如<code>master&gt; git tag v1.0</code>，而后才可发布上线。</p>
+</li>
+</ol>
+<blockquote>
+<p><strong>无测试参与的项目</strong></p>
+<p>比如开发公共库或中间服务的项目，这种情况下，可以<strong>不拉</strong><code>release</code>分支，而直接在<code>master</code>上拉<code>issue</code>分支，但<strong>Merge Request</strong>的步骤<strong>不能缺少</strong>。</p>
+</blockquote>
+<blockquote>
+<p><strong>注意</strong></p>
+<p>合并后的分支应删除掉。</p>
+</blockquote>
+<h2 id="分支说明">分支说明</h2>
+<ul>
+<li><strong>master</strong>
+<ul>
+<li>最新的提交版本应该与线上版本保持一致</li>
+<li>必须是 <strong>Protected</strong>， 仅限项目 Owner 提交或合并</li>
+</ul>
+</li>
+<li><strong>release/{version}</strong>
+<ul>
+<li>当前开发分支，<code>version</code>是版本号</li>
+<li>最新提交版本应该与测试环境保持一致</li>
+</ul>
+</li>
+<li><strong>issue/{id}</strong>
+<ul>
+<li>对应 issue 的开发分支</li>
+</ul>
+</li>
+</ul>
+<div><a href="https://zhongl.github.io/tags/code-review" class="post-badge">code review</a><a href="https://zhongl.github.io/tags/gitlab" class="post-badge">gitlab</a><a href="https://zhongl.github.io/tags/merge-request" class="post-badge">merge request</a><a href="https://github.com/zhongl/zhongl.github.com/issues/16" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">零侵入式启动javaagent在stagemonitor中的实现</h1><p class="post-meta">17 Feb 2017 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="starting javaagent with zero change in stagemonitor" />
+<input type="hidden" name="created" value="2017-02-17" />
+<h1 id="启动-javaagent">启动 Javaagent</h1>
+<p><strong>以下摘自 <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/instrument/package-summary.html">Oracle Javase 8 Doc</a></strong> ：</p>
+<blockquote>
+<p>Command-Line Interface</p>
+<p>An implementation is not required to provide a way to start agents from the command-line interface. On implementations that do provide a way to start agents from the command-line interface, an agent is started by adding this option to the command-line:</p>
+<p><code>-javaagent:jarpath[=options]</code></p>
+</blockquote>
+<p>通过<strong>命令行参数</strong>的方式启动 Javaagent 是最常用的一种方式，但却<strong>不是唯一的方式</strong>。正如文档中提到的， 启动 Javaagent 其实是有两个入口方法：</p>
+<pre><code class="language-java">public static void premain(...);        // [1]
+
+public static void agentmain(...);      // [2]
+</code></pre>
+<ol>
+<li>命令行参数的方式启动的是 <code>premain</code>，而另一种</li>
+<li><code>agentmain</code> 则是通过 <a href="http://docs.oracle.com/javase/8/docs/jdk/api/attach/spec/index.html">Attach API</a> 启动的，如下：</li>
+</ol>
+<pre><code class="language-java">String pid = ...
+VirtualMachine vm = VirtualMachine.attach(pid);
+vm.loadAgent(&quot;/path/to/agent&quot;);
+vm.detach();
+</code></pre>
+<h1 id="零侵入式随jvm运行而启动-javaagent">零侵入式随JVM运行而启动 Javaagent</h1>
+<p>所谓零侵入， 是指对目标JVM应用不做任何修改，有且仅将 Javaagent 置于特定的位置就能实现对其启动呢？</p>
+<p>只是基于前文的知识，几乎是不可能做到的。幸运的是，我曾和一位资深专家聊到过这个话题，他启发我从 <a href="https://github.com/hexdecteam/stagemonitor/tree/easestack-0.25.0">stagemonitor</a> 中找到了答案。</p>
+<!--more-->
+<p>其实，要想启动 Javaagent 就不可能存在有别于前文的第三种途径，毕竟 JVM 的实现只提供了这两种。</p>
+<p>二选一，问题比原先想象的要简单。我们可以排除<strong>命令行参数</strong>的方式，因为它必须要改变 JVM 应用原有的启动命令。那么剩下 <strong>Attach API</strong> 的方式是唯一的选择， 接下来要搞明白的事情是 <strong>由谁来执行预先准备好的 Attach 过程</strong>。</p>
+<p>看似就剩 “最后一公里”，实在不然。揣摩之前，必须破除两个思维的限制：</p>
+<ol>
+<li>对 <strong>Attach API</strong> 的调用只能是在另个进程中执行；</li>
+<li>对 <strong>Instrumentation API</strong> 的调用只能在 <code>agentmain</code> 方法中执行。</li>
+</ol>
+<p><a href="https://github.com/hexdecteam/stagemonitor/tree/easestack-0.25.0">stagemonitor</a> 恰恰是因为没有上述两堵思维的墙，因而实现得非常巧妙。</p>
+<h1 id="serviceloader">ServiceLoader</h1>
+<p>Tomcat 作为 Servlet 容器的标准实现，借助 <a href="http://docs.oracle.com/javase/8/docs/api/java/util/ServiceLoader.html">ServiceLoader</a> 回调所有能够 <strong>找到</strong> 的<code>ServletContainerInitializer</code> 接口的实现者。</p>
+<p><a href="https://github.com/hexdecteam/stagemonitor/tree/easestack-0.25.0">stagemonitor</a> 中 <a href="https://github.com/hexdecteam/stagemonitor/blob/easestack-0.25.0/stagemonitor-web/src/main/java/org/stagemonitor/web/WebPlugin.java#L47">WebPlugin</a> 实现了 <code>ServletContainerInitializer</code> 接口， 并在类初始化阶段完成 <strong>Attach</strong> 的<a href="https://github.com/hexdecteam/stagemonitor/blob/easestack-0.25.0/stagemonitor-web/src/main/java/org/stagemonitor/web/WebPlugin.java#L56">过程</a>。</p>
+<pre><code class="language-java">public class WebPlugin extends StagemonitorPlugin 
+  implements ServletContainerInitializer {
+
+	static  {
+		Stagemonitor.init();
+	}
+	
+	...
+}	
+</code></pre>
+<blockquote>
+<p>这里打破了第一堵墙，在同一进程内执行 <strong>Attach</strong>。</p>
+</blockquote>
+<h1 id="bytebuddy">ByteBuddy</h1>
+<p>看过源码之后， 你可能会疑惑，<a href="https://github.com/hexdecteam/stagemonitor/tree/easestack-0.25.0">stagemonitor</a> 并没有直接使用 <strong>Attach API</strong>， 而是在<a href="https://github.com/hexdecteam/stagemonitor/blob/easestack-0.25.0/stagemonitor-core/src/main/java/org/stagemonitor/core/instrument/AgentAttacher.java#L94">AgentAttacher</a> 中采用 <a href="http://bytebuddy.net/#/">ByteBuddy</a> 提供的 <code>ByteBuddyAgent.install</code> 来获得 <strong>Instrumentation</strong> 的实例，进而完成修改字节码的逻辑。</p>
+<blockquote>
+<p>这里打破了第二堵墙，<code>ByteBuddyAgent.install</code> 在运行时将 <a href="https://github.com/raphw/byte-buddy/blob/master/byte-buddy-agent/src/main/java/net/bytebuddy/agent/Installer.java#L69">Installer</a> 变成 <a href="https://github.com/raphw/byte-buddy/blob/master/byte-buddy-agent/src/main/java/net/bytebuddy/agent/ByteBuddyAgent.java#L796">Javaagent</a> 交由 JVM 进行回调 <code>agentmain</code>， 仅仅只为获得 <strong>Instrumentation</strong> 的实例引用。至于如何使用 <strong>Instrumentation</strong> 完全可以不在 <code>agentmain</code> 中执行。</p>
+</blockquote>
+<h1 id="零侵入的代价">零侵入的代价</h1>
+<p>看似用户体验友好的完美方案，其实是有“代价”的：</p>
+<ol>
+<li>这是一个针对 Tomcat 应用场景的特定方案，并不适用于所有的 JVM 应用，这在 <a href="https://github.com/hexdecteam/stagemonitor/tree/easestack-0.25.0">stagemonitor</a> 的 <a href="https://github.com/stagemonitor/stagemonitor/wiki/Step-1%3A-In-Browser-Widget#embedded-servlet-containers">wiki</a> 中也有体现；</li>
+<li><strong>Attach API</strong> 并非由标准库提供，这意味着没有安装 JDK （仅有 JRE）的环境是不支持的，这点在 stagemonitor 的 wiki 中也有<a href="https://github.com/stagemonitor/stagemonitor/wiki/Installation">声明</a>；</li>
+<li><strong>Attach API</strong> 启动 Javaagent （回调 <code>agentmain</code>）的时机是在 <code>main</code> 方法开始之后的，这意味着在启动之前已经完成装载的字节码，哪怕是属于修改范畴，在 Javaagent 启动后的进行修改也是不会生效，除非特别指定要 <code>Instrumentation.retransformClasses(Class&lt;?&gt;... classes)</code>。</li>
+</ol>
+<p>零侵入带来的友好体验，相对于通过修改 <strong>命令行参数</strong> 而言并不见得有很大的优势。 同样是 Tomcat 的场景， 实现 <strong>命令行参数</strong> 的<a href="http://stackoverflow.com/questions/6697063/adding-javaagent-to-tomcat-6-server-where-do-i-put-it-and-in-what-format">方式</a>:</p>
+<pre><code>CATALINA_OPTS=&quot;$CATALINA_OPTS -javaagent:/path/to/agent&quot;
+</code></pre>
+<h1 id="后记">后记</h1>
+<p><a href="https://github.com/hexdecteam/stagemonitor/tree/easestack-0.25.0">stagemonitor</a> 的零侵入思路是可以借鉴并举一反三的，但其代码的实现方式未必是最简洁优雅的，至少我在看的时候有种吃翔的感觉 😂 。</p>
+<div><a href="https://zhongl.github.io/tags/bytebuddy" class="post-badge">bytebuddy</a><a href="https://zhongl.github.io/tags/javaagent" class="post-badge">javaagent</a><a href="https://github.com/zhongl/zhongl.github.com/issues/18" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">使用 Scala Macro Annotation 实现配置项绑定（下）</h1><p class="post-meta">23 Jan 2015 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="implement configuration binding with scala macro 3" />
+<input type="hidden" name="created" value="2015-01-23" />
+<p>一个话题值得写三篇, 可见我是多么认(gui)真(mao)的一个人.</p>
+<p>[中篇][2] 相较 [上篇][1] 在定义上虽减少的噪音, 但其核心问题并没有得到完美的解决, 即:</p>
+<p><strong>一旦真要对配置重构个命名什么的, 必然是要改代码, 再改配置</strong></p>
+<p>写了这么些年的强类型语言, 每次阴沟里翻船都是在 &quot;重构配置&quot; 之后, 这让本是类型检查的优势成为了笑话.</p>
+<!--more-->
+<p>[中篇][2] 的最后, 我留下了一个 <code>sbt-plugin</code> 任务待完成,.</p>
+<p>在细想过后, 发现基于上个版本的实现, 还有不少细节上的难点.</p>
+<p>这迫使我从 <strong>生成配置文件</strong> 的角度出发, 重新设计声明配置的代码风格.</p>
+<p>(此处省略内心斗争过程的上万字独白)</p>
+<p>也正是因此催生了这近乎完美的<a href="https://github.com/zhongl/config-annotation">第三个版本</a>.</p>
+<h2 id="config-style">Config-style</h2>
+<p>拜 <code>scala</code> 灵活语法特性所赐, 代码可以写非常接近最后的配置, 我把这种这写法命名为 <code>config-style</code> :</p>
+<pre><code class="language-scala">trait kafka {
+  val server = new {
+    val host = &quot;wacai.com&quot;
+    val port = 12306
+  }
+
+  val socket = new {
+    val timeout = 3 seconds
+    val buffer = 1024 * 64L
+  }
+
+  val client = &quot;wacai&quot;
+}
+</code></pre>
+<p>对比一下真实的配置:</p>
+<pre><code class="language-scala">kafka {
+  server {
+    host = wacai.com
+    port = 12306
+  }
+
+  socket {
+    timeout = 3s
+    buffer = 64K
+  }
+
+  client = wacai
+}
+</code></pre>
+<p>基本上后者就是前者去掉关键字 <code>trait</code>, <code>val</code>, <code>new</code> 之后的内容.</p>
+<p>不可思议吗 ?  不可思议吧! (2333333)</p>
+<h2 id="对-ide-友好">对 IDE 友好</h2>
+<p>之前实现版本, 对 IDE 都不友好, 以至于我要在 <code>README</code> 特别注明, IDE 的错误提示, 其原因是它还没能完美支持宏特性.</p>
+<p>现在, 再也不用在为编辑区里哪些碍眼的红色波浪号而揪心了.</p>
+<h2 id="对重构友好">对重构友好</h2>
+<p>在上面的风格的帮助下, 这让配置生成的工作简单了很多, 甚至都用不着写 <code>sbt-plugin</code> , 即在编译完成的同时生成对应的配置内容.</p>
+<p>这意味着, 我们终于可以愉快地重构配置, 妈妈再也不用担心...</p>
+<p>默认情况下, 会在 <code>src/main/resources</code> 目录里产生一个与 <code>trait</code> 同名的 <code>.conf</code> 文件.</p>
+<p>为什么不直接写入 <code>application.conf</code> ?</p>
+<p>理由很简单, 当有多个 <code>config-style</code> 的声明时, 最后合并更新 <code>application.conf</code> 的过程会比较烧脑.</p>
+<p>更何况有更简单的方法, 为什么不用呢?</p>
+<p><a href="https://github.com/typesafehub/config#features-of-hocon">config</a> 有个强大的特性, 就是支持 <code>include &quot;xxx.conf&quot;</code>.</p>
+<p>也就是说, 在 <code>application.conf</code> 引入所有其它生成的配置文件情况下, 怎么修改配置的代码都不影响最终合并出来的内容.</p>
+<p>更多帮助请见项目<a href="https://github.com/zhongl/config-annotation">README</a>, 另还有一个完整可以运行的<a href="https://github.com/wacai/config-annotation-example">范例项目</a>供参考.</p>
+<p>嗯, 正文的部分已经结束, 我向毛爷爷保证这是本话题的最后一篇.</p>
+<p>终. (碎觉)</p>
+<p>[2]:{% post_url 2015-01-20-implement-configuration-binding-with-scala-macro-2 %}
+[1]:{% post_url 2015-01-17-implement-configuration-binding-with-scala-macro-1 %}</p>
+<div><a href="https://zhongl.github.io/tags/annotation" class="post-badge">annotation</a><a href="https://zhongl.github.io/tags/configuration" class="post-badge">configuration</a><a href="https://zhongl.github.io/tags/macro" class="post-badge">macro</a><a href="https://zhongl.github.io/tags/scala" class="post-badge">scala</a><a href="https://github.com/zhongl/zhongl.github.com/issues/9" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

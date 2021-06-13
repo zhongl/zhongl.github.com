@@ -1,0 +1,166 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">我所经历的单元测试的三个境界</h1><p class="post-meta">18 May 2016 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="three levels of unit test" />
+<input type="hidden" name="created" value="2016-05-18" />
+<p>最开始测试也就是代码写完后运行一下看有没有什么问题。那个时候不会认真的去想要测试什么，因为问题会自己找上门来。:P</p>
+<pre><code class="language-java">public class Killer {
+  public void doAwsomeThings() { ... }
+
+  public static void main(String[] args) throws Exception {
+    System.out.println(&quot;Start...&quot;);
+    new Killer().doAwsomeThings();
+    System.out.println(&quot;Ended&quot;);
+  }
+}
+</code></pre>
+<p>写个 <code>main</code> 就可以跑起来看看打印出来是不是自己期望的。不出意外的话， 一般是各种异常堆栈会最先出现。囧rz</p>
+<p>其实我一个人写来自己用的，有没有单元测试，怎么实现单元测试，真的没有那么重要。</p>
+<!--more-->
+<h3 id="为证明而测试">为证明而测试</h3>
+<p>有一天，我得写些代码给其他的程序员用，为了不招来<strong>鄙视</strong>的眼神，被迫得<strong>装逼</strong>写了个单元测试用例:</p>
+<pre><code class="language-java">public class XxxHelper {
+  public String magic(String s) {...}
+}
+
+
+public class XxxHelperTest {
+  @Test
+  public void testMagic() {
+    XxxHelper h = new XxxHelper();
+    assertEquals(h.magic(&quot;hello&quot;), &quot;world&quot;);
+  }
+}
+</code></pre>
+<p>当有人叫嚣着告诉我代码有 bug 的时候，我会把测试用例给他看，证明代码没有 bug。</p>
+<blockquote>
+<p><strong><a href="http://www.mojohaus.org/cobertura-maven-plugin/">cobertura</a></strong>
+它是个拉高测试逼格的利器，只要执行<code>mvn clean cobertura:cobertura</code>，它便会在运行单元测试后生成一个 HTML 的覆盖率的报告，非常直观的展现出测试用例覆盖哪些代码行。</p>
+<p>通过它，我可以清楚的了解到测试用例是否足够， 有没有覆盖到我<strong>最关心</strong>，<strong>最担心</strong>的那部分逻辑。与此同时，我对代码质量的信心也来源于此。</p>
+</blockquote>
+<p><img src="https://www.playframework.com/documentation/1.0.1/images/cobertura1" alt="cobertura-report" /></p>
+<blockquote>
+<p><strong>测试覆盖率要达到多少才算好呢？</strong></p>
+<p>这其实不是一个好问题，容易误导我们盲目追求某个数字而忘记做这件事情的初衷。</p>
+<p>数值只是一种程度的参考，关键要看哪些被标红的代码行，斟酌一下：</p>
+<ol>
+<li>有没有必要去追加更多的测试用例去覆盖到？</li>
+<li>这儿也许是过度设计(或实现)的产物，超出了目前交付的目标范围，是删掉， 还是创建一个新的分支留待以后再用？</li>
+</ol>
+</blockquote>
+<h3 id="为重构而测试">为重构而测试</h3>
+<blockquote>
+<p>需求唯一不变的就是<strong>变</strong></p>
+</blockquote>
+<p>研发是个<strong>持续迭代</strong>的过程，需求的演化驱动着代码的变迁，其单元测试也是一样。</p>
+<p><img src="http://i.imgur.com/acmyARH.png" alt="red-green-refactor" /></p>
+<p>然后实际情况可能会是:</p>
+<ol>
+<li>代码各种改...</li>
+<li>跑测试，WTF，失败了？！</li>
+<li>注释掉，嗯， 这个世界从此安静啦， 嘿嘿嘿~~~</li>
+</ol>
+<blockquote>
+<p>躺枪了吧朋友，不好意思，这纯属蓄意！</p>
+<p>什么？你从来不跑测试... 囧rz</p>
+</blockquote>
+<p>如果你还是个希望达到这个境界的人，那你需要明白，单元测试是你提交代码前<strong>最后的防线</strong>，它一旦失败就意味你代码<strong>打破之前的设计约定</strong>。</p>
+<p>我们时常扼腕叹息<strong>某个老系统不能动，一动谁也不知道会出什么问题</strong>， 此时一定会有个不知趣的人跳出来问<strong>怎么没有测试用例呢？</strong></p>
+<h3 id="为文档而测试">为文档而测试</h3>
+<p>平庸的程序员至少有两件事情最不情愿做：</p>
+<ul>
+<li>如果说写<strong>测试</strong>算一个的话，那么</li>
+<li>写<strong>文档</strong>必须是另一个</li>
+</ul>
+<blockquote>
+<p>“怎么连个文档都没有？”</p>
+</blockquote>
+<p>这是我们在使用别人提供的代码时最常抱怨的一句话了。</p>
+<p><strong>试想一下，要是测试代码就是文档的话，不是一举两得的好事吗？</strong></p>
+<pre><code class="language-java">public class TraderSteps {
+
+    private Stock stock;
+
+    @Given(&quot;a stock of symbol $symbol and a threshold of $threshold&quot;)
+    public void aStock(String symbol, double threshold) {
+        stock = new Stock(symbol, threshold);
+    }
+
+    @When(&quot;the stock is traded at $price&quot;)
+    public void theStockIsTradedAt(double price) {
+        stock.tradeAt(price);
+    }
+
+    @Then(&quot;the alert status should be $status&quot;)
+    public void theAlertStatusShouldBe(String status) {
+        ensureThat(stock.getStatus().name(), equalTo(status));
+    }
+
+}
+</code></pre>
+<blockquote>
+<p>上面代码源自<a href="http://jbehave.org/reference/stable/developing-stories.html#mapping">jbehave</a>，更多类似的项目请<a href="https://www.google.com.hk/webhp?sourceid=chrome-instant&amp;ion=1&amp;espv=2&amp;ie=UTF-8#newwindow=1&amp;q=BDD+java">Google</a>。</p>
+</blockquote>
+<p>很赞，对不对？</p>
+<p>那是不是意味着下面的测试就不算上是“文档”呢？</p>
+<pre><code class="language-java">@RunWith(SpringJUnit4ClassRunner.class)
+@TestPropertySource(&quot;classpath:default.properties&quot;)
+@ContextConfiguration(classes = {SecureDataSourceConfiguration.class, PropertySourcesPlaceholderConfigurer.class})
+public class DefaultDataSourceTest {
+
+    @Autowired
+    DataSource secure;
+
+    @Test
+    public void should_inject_secure_data_sources() throws Exception {
+        assertThat(secure, is(notNullValue()));
+
+        final DruidDataSource dds = (DruidDataSource) this.secure;
+        assertThat(dds.getMaxActive(), is(5));
+
+        assertThat(dds.getRemoveAbandonedTimeoutMillis(), is(300000L));
+    }
+}
+</code></pre>
+<p>然后并不是这样的， 细心的人会发现：</p>
+<ol>
+<li>类名<code>DefaultDataSourceTest</code>，说明了测试场景；</li>
+<li>方法名<code>should_inject_secure_data_sources</code>，说明代码的预期行为。</li>
+</ol>
+<p>测试代码甚至还可以是一份直观的使用教程，如：</p>
+<pre><code class="language-java">@RunWith(SpringJUnit4ClassRunner.class)
+@TestPropertySource(&quot;classpath:multiple.properties&quot;)
+@ContextConfiguration(classes = {MultipleDataSourcesTest.Config.class, SecureDataSourceConfiguration.class, PropertySourcesPlaceholderConfigurer.class})
+public class MultipleDataSourcesTest {
+
+    @Autowired
+    Map&lt;String, DataSource&gt; sources;
+
+    @Test
+    public void should_inject_two_data_sources() throws Exception { ... }
+
+    @Configuration
+    public static class Config extends SecureDataSourceConfiguration {
+
+        @Bean
+        @ConfigurationProperties(&quot;ds.m1&quot;)
+        FactoryBean&lt;DataSource&gt; m1(JdbcUrlTemplate jdbcUrl) {
+            return createSecureDataSourceFactoryBean(&quot;wac_m1&quot;, jdbcUrl);
+        }
+
+        @Bean
+        @ConfigurationProperties(&quot;ds.m2&quot;)
+        FactoryBean&lt;DataSource&gt; m2(JdbcUrlTemplate jdbcUrl) {
+            return createSecureDataSourceFactoryBean(&quot;wac_m2&quot;, jdbcUrl);
+        }
+    }
+}
+</code></pre>
+<p>看到这里， 我想各位应该明白了，写出有“文档”价值的测试代码， 首先不难，其次它带来的益处是你以前无法想象：</p>
+<ol>
+<li>有了这样的测试代码，你再也不用把时间浪费在 QQ 的沟通上；</li>
+<li>有了这样的测试代码，Code Review 对你来说都是件轻松愉快的事情；</li>
+<li>有了这样的测试代码，你是不是都有了提 Merge Request 的冲动呢？</li>
+</ol>
+<div><a href="https://zhongl.github.io/tags/unit-test" class="post-badge">unit test</a><a href="https://github.com/zhongl/zhongl.github.com/issues/14" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

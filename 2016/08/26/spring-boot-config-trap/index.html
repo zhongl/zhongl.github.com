@@ -1,0 +1,51 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">spring-boot 配置陷阱</h1><p class="post-meta">26 Aug 2016 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="spring boot config trap" />
+<input type="hidden" name="created" value="2016-08-26" />
+<p>spring-boot 官方文档就 properties 文件装载有如下说明<sup id="fnref-1"><a class="footnote-ref" href="#fn-1">1</a></sup>:</p>
+<blockquote>
+<h2 id="243-application-property-files">24.3 Application property files</h2>
+<p>SpringApplication will load properties from application.properties files in the following locations and add them to the Spring Environment:</p>
+<ol>
+<li>A /config subdirectory of the current directory.</li>
+<li>The current directory</li>
+<li>A classpath /config package</li>
+<li>The classpath root</li>
+</ol>
+<p>The list is ordered by precedence (properties defined in locations higher in the list <strong>override</strong> those defined in lower locations).</p>
+</blockquote>
+<!--more-->
+<p>简言之，properties 文件有四处装载位置，如果多处都存在<code>application.properties</code>， 且 property  有重复，则前者会<strong>覆盖</strong>后者。</p>
+<blockquote>
+<p>我写了个项目 <a href="https://github.com/zhongl/spring-boot-config-trap">zhongl/spring-boot-config-trap</a> 可以演示这一特性：</p>
+<p>通过分别运行<code>tag:resources</code>和<code>tag:config</code>两版本的代码， 会发现 <a href="http://localhost:8080">http://localhost:8080</a> 结果因<code>config/application.properties</code>文件内容的变化而不同。</p>
+</blockquote>
+<p><strong>在特定环境中部署运行时，通过这一特性可以灵活的调整某些 property 的初始值（即<code>resources/application.properties</code>中的预设值）</strong></p>
+<h2 id="陷阱">陷阱</h2>
+<p>可惜的是，在不恰当的开发习惯下，也容易引发配置疏忽大意，导致错误的 properties 生效而造成<strong>严重的系统故障</strong>。</p>
+<blockquote>
+<p>比如，我在<code>resources/application.properties</code>中配置 JDBC 参数是指向非生产环境的数据库，方便日常开发测试。到生产环境中部署时，通过<code>config/application.properties</code>来调整 JDBC 参数的指向。一旦忘记更改指向，服务是可以正常启动的，而错误直到数据读写出现才会暴露，而一切为时已晚……</p>
+</blockquote>
+<h2 id="规避">规避</h2>
+<ol>
+<li>本地开发也使用<code>config／application.properties</code>，而非<code>resources/application.properties</code>，</li>
+<li><code>.gitignore</code> 添加 <code>config</code>，避免本地配置扩散的其他环境。
+​</li>
+</ol>
+<h2 id="启发">启发</h2>
+<ol>
+<li>依赖环境的配置不能有默认值</li>
+<li>配置可能引发的问题，一定要在启动阶段暴露，哪怕是无法提供服务，总比提供错误的服务要好</li>
+</ol>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn-1">
+<p>http://docs.spring.io/spring-boot/docs/current/reference/html/boot-features-external-config.html#boot-features-external-config-application-property-files</p>
+<a href="#fnref-1" class="footnote-backref">&#8617;</a>
+</li>
+</ol>
+</div>
+<div><a href="https://zhongl.github.io/tags/configuration" class="post-badge">configuration</a><a href="https://github.com/zhongl/zhongl.github.com/issues/17" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

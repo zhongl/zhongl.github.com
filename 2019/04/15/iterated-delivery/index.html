@@ -1,0 +1,61 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">迭代交付</h1><p class="post-meta">15 Apr 2019 @<a href="https://github.com/zhongl">zhongl</a></p><input type='hidden' name='id' value='iterated delivery' />
+<p><a href="http://cafusic.lofter.com/post/1d7be719_c3c048c"><img src="http://imglf0.nosdn.127.net/img/c0NkZC8xc3QzeVJQbUdDandaYlVFdWE5ME1ncnJlT3FBOE9OMEU4azE4djVhNVZ4UEw0MHBnPT0.jpg?imageView&amp;thumbnail=1680x0&amp;quality=96&amp;stripmeta=0&amp;type=jpg" alt="iteration" />
+</a></p>
+<blockquote>
+<p>迭浪</p>
+</blockquote>
+<p>持续集成与交付(<a href="https://en.wikipedia.org/wiki/CI/CD"><strong>Continuous Integration &amp; Continuous Delivery</strong></a>)已经不是什么新词汇了(以下简称 <strong>CICD</strong>), 然而在实践过程中, 我们很有可能遗忘了其中隐含的一个前提, 使得<strong>CICD</strong>落地的效果大打折扣.</p>
+<p>正如团队里有人提出如下疑问:</p>
+<blockquote>
+<ul>
+<li>对于一个长流程如何做到持续集成？若一个长流程本身就有几天的开发工作量，那该怎么去做持续集成？</li>
+<li>先将流程的框架搭好再逐步去完善其中的细节？那框架应该达到什么程度，若中间涉及到数据存取的使用、依赖，因依赖部件未完成而导致无法集成怎么办？</li>
+</ul>
+</blockquote>
+<p>软件开发长久以来受<a href="https://zh.wikipedia.org/wiki/%E7%80%91%E5%B8%83%E6%A8%A1%E5%9E%8B"><strong>瀑布式开发</strong></a>模式的影响, 让我们惯性的认为 <strong>集成</strong> 是在所有组件功能完备以后才开始的. 然而, <a href="https://zh.wikipedia.org/wiki/%E8%BF%AD%E4%BB%A3%E5%BC%8F%E5%BC%80%E5%8F%91"><strong>迭代式开发</strong></a>打破了瀑布的模式, 强调以增量的方式, 快速<strong>交付-验证-改进-再交付</strong>, 如此迭代提升效率. <strong>CICD</strong> 正是在<strong>迭代交付</strong>的背景下发展出来的.</p>
+<blockquote>
+<p><strong>注意</strong></p>
+<p><strong>迭代交付</strong>这个前提并非必要的, 即便没有, 实施 <strong>CICD</strong> 价值仍然是有的. 不过, 若能具备这个前提, 无疑能让 <strong>CICD</strong> 更早的产生收益.</p>
+</blockquote>
+<p>讲到这里, 关于<strong>迭代交付</strong>这个概念还是太虚, 不容易理解. 那么就来个栗子🌰吧.</p>
+<pre><code class="language-java">interface FullTextSearchService {
+    List&lt;String&gt; search(String keyword);
+}
+</code></pre>
+<p>假设, 要实现一个全文查询服务(<code>FullTextSearchService</code>) 如上接口代码. 根据设计其实现会非常复杂, 包括:</p>
+<ul>
+<li>数据聚合</li>
+<li>相关性排序</li>
+<li>分页</li>
+<li>缓存优化</li>
+</ul>
+<p>从零实现上述特性的话, 怕是要数周不止. 为了能够尽早集成, 我们可以提供一个<strong>最小可用</strong>交付版本:</p>
+<pre><code class="language-java">class EmptyResultSearchService implements FullTextSearchService {
+    @Override
+    public List&lt;String&gt; search(String keyword) {
+        return Collections.empty();
+    }
+}
+</code></pre>
+<p>你可能会认为这有什么好测的嘛? 是的, 只有一行代码, 显然不是期望中最终交付的样子, 但就是这样一个<strong>最小可用</strong>版本, 能够让你的代码<strong>编译-打包-部署-运行</strong>.</p>
+<blockquote>
+<p><strong>最小可用</strong> 版本就是要搭的流程框架的实现程度.</p>
+</blockquote>
+<p><strong>集成测试</strong>重点在于验证系统各组件之间的连通性, 即<strong>接口</strong>的实现是否满足契约. 换句话说, 这个版本的集成测试重点是, <strong><code>search</code> 方法能否调通</strong> .</p>
+<blockquote>
+<p>那是不是说<strong>集成测试</strong>就不关心逻辑功能了?</p>
+<p>不是, 能用集成测试覆盖所有场景那最好, 但那样的话自动化测试的研发投入很可能不亚于功能实现. 相较而言, 采用<strong>单元测试</strong>来覆盖接口的各种实现情况, 才是<strong>投入产出比</strong>更高的选择.</p>
+</blockquote>
+<p>以此类推, 随着代码逻辑的叠加, 每次迭代的版本就离最终交付的目标更近, 同时每次的增量变动一旦出现<strong>偏差</strong>, 即刻在 <strong>CICD</strong> 中被发现并得以<strong>纠正</strong>. 比如为了实现<strong>分页</strong>, 接口需要调整:</p>
+<pre><code class="language-java">interface FullTextSearchService {
+    List&lt;String&gt; search(String keyword, int page, int, pageSize);
+}
+</code></pre>
+<p>接口的调用方若是同一个工程, 那编译阶段就能发现问题, 这是最幸运的. 然而, 微服务架构下, 调用方很可能是其他人开发的另一个服务, 这样破坏契约的变动越晚发现, 代价就越惨痛.</p>
+<p>知易行难啊, 如果你问我, 如何把握每次迭代的<strong>最小可用</strong>增量? 惭愧, 我没有标准答案, 唯有具体情况具体分析啦, 共勉!</p>
+<p>The End.</p>
+<div><a href="https://zhongl.github.io/tags/cicd" class="post-badge">cicd</a><a href="https://github.com/zhongl/zhongl.github.com/issues/30" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

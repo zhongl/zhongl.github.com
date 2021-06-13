@@ -1,0 +1,62 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">maven-shade-plugin遭遇log4j2会出现的问题与解决办法</h1><p class="post-meta">14 Apr 2017 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="shade your jar with log4j2" />
+<input type="hidden" name="created" value="2017-04-14" />
+<h1 id="引言">引言</h1>
+<p>Java 应用开发时常会有一个 <strong>隐隐作痛</strong> 的问题， 就是部署的 jar 很臃肿。 大多数情况下，当传输和存储都还未成瓶颈时， 对此我们还是可以容忍的， 哪怕是它已经有几百兆。但在有些场景下， 例如 Android 开发， 我们则需要非常严肃地对待这个问题，将其 jar 的大小降至最低。</p>
+<blockquote>
+<p>Android 开发中使用的打包裁剪工具是 <a href="https://www.guardsquare.com/en/proguard">ProGuard</a>。相较 <a href="https://maven.apache.org/components/plugins/maven-shade-plugin/">maven-shade-plugin</a> 而言，它裁剪粒度更精细，使得最终裁剪的大小可以做得更小， 只是相应的我们需要付出更多时间才能做到。</p>
+</blockquote>
+<p>作为一个有轻度强迫症的程序员， 我在近期试图应对这个问题的时候， 花了不少时间踩坑， 觉得有必要记录一下。</p>
+<!--more-->
+<h1 id="当-maven-shade-plugin-遭遇-log4j2">当 maven-shade-plugin 遭遇 log4j2</h1>
+<p>我在自己的开发项目中使用 <a href="https://maven.apache.org/components/plugins/maven-shade-plugin/">maven-shade-plugin</a> ，一方面实现最终只用交付一个 jar 以提升部署效率；另一方面则是使用它的一个容易被忽略的功能，<a href="https://maven.apache.org/components/plugins/maven-shade-plugin/shade-mojo.html#minimizeJar"><strong>类级别的无用代码裁剪</strong></a>， 来为最终的 jar 进行瘦身。</p>
+<p>使用起来非常简单， 开启一个配置选项即可：</p>
+<pre><code class="language-xml">&lt;plugin&gt;
+ &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+ &lt;artifactId&gt;maven-shade-plugin&lt;/artifactId&gt;
+ &lt;version&gt;3.0.0&lt;/version&gt;
+ &lt;configuration&gt;
+     &lt;minimizeJar&gt;true&lt;/minimizeJar&gt;
+ &lt;/configuration&gt;
+ &lt;executions&gt;
+     &lt;execution&gt;
+         &lt;phase&gt;package&lt;/phase&gt;
+         &lt;goals&gt;
+             &lt;goal&gt;shade&lt;/goal&gt;
+         &lt;/goals&gt;
+     &lt;/execution&gt;
+ &lt;/executions&gt;
+&lt;/plugin&gt;
+</code></pre>
+<p>构建打包下来效果 <strong>出奇</strong> 的好，实际运行则出现各种 <a href="https://logging.apache.org/log4j/2.x/">log4j2</a> 相关 <code>ClassNotFoundExcepton</code> 或是 <code>NoClassDefFoundError</code>。</p>
+<p>究其原因，既不不出在 <a href="https://logging.apache.org/log4j/2.x/">log4j2</a>， 也非 <a href="https://maven.apache.org/components/plugins/maven-shade-plugin/">maven-shade-plugin</a>， 而是我忽略代码裁剪基本原理。 它是基于静态代码（或字节码）分析出来的依赖关系，来判断哪些代码是无用，这也就意味着那些借助 <strong>反射机制</strong> 实现运行时的依赖， 例如 <code>Class.forName</code> 或 <code>ClassLoader.loadClass</code>， <a href="https://maven.apache.org/components/plugins/maven-shade-plugin/">maven-shade-plugin</a> 是无法知道的。</p>
+<blockquote>
+<p>不光是 <a href="https://logging.apache.org/log4j/2.x/">log4j2</a>， 类似的基于类加载器实现自动装配 <em>插件(Plugins)</em> 或 <em>模块(Modules)</em> 的开发库，都存在这样的问题， 请一定小心警惕！</p>
+</blockquote>
+<h1 id="解决方法">解决方法</h1>
+<p>相信聪明的你已经想到了解决办法，很简单，那就是在代码中 <strong>声明</strong> 依赖， 例如：</p>
+<pre><code class="language-java">abstract class ResolvingLinkes {
+    static {
+        System.out.println(org.apache.logging.log4j.core.appender.AppenderSet.class);
+        ...
+    }
+}
+</code></pre>
+<blockquote>
+<p>完整版本可见<a href="https://gist.github.com/zhongl/0a1cdd746d142d0e3bd8e83f568a2599">ResolvingLinkes.java</a></p>
+</blockquote>
+<p>通过编写一个运行时并不会用到的<code>ResolvingLinks</code>， 在其静态初始化块里 <strong>声明</strong> 要用到的那些类， 这样一来 <a href="https://maven.apache.org/components/plugins/maven-shade-plugin/">maven-shade-plugin</a> 可以帮我们保留它们以及它们的依赖。</p>
+<blockquote>
+<p>为什么不使用 <a href="https://maven.apache.org/components/plugins/maven-shade-plugin/">maven-shade-plugin</a> 提供的 <a href="https://maven.apache.org/components/plugins/maven-shade-plugin/shade-mojo.html#filters">filter</a> 配置呢？这个问题挺有趣推荐你自己思考一下 😜</p>
+</blockquote>
+<p>实践过程中，去找出哪些类需要声明，常常是<strong>耗时且令人崩溃</strong>的。</p>
+<p>这里分享一个小技巧，类似 <a href="https://logging.apache.org/log4j/2.x/">log4j2</a> 这样需要自动装配的插件，还是会在某个 <strong>隐藏</strong> 角落进行声明， 不然它自己怎么知道要如何装配呢？好在这个 <strong>隐藏</strong> 的角落通常会在 <code>META-INF/</code> 下，例如 <code>META-INF/org/apache/logging/log4j/core/config/plugins/Log4j2Plugins.dat</code>，若是使用 <a href="http://docs.oracle.com/javase/8/docs/api/java/util/ServiceLoader.html">ServiceLoader</a> 机制的会在 <code>META-INF/services/</code> 下。</p>
+<h2 id="声明文件的小坑">声明文件的小坑</h2>
+<p>当出现依赖的多个 jar 中都有同名的声明文件， <a href="https://maven.apache.org/components/plugins/maven-shade-plugin/">maven-shade-plugin</a> 在默认配置下是会相互覆盖的，这也就意味着哪怕是代码声明了依赖，还是会遇到实际运行的时候这些类并未被相应的库进行装配的尴尬😅。 解决的办法是使用 <a href="https://maven.apache.org/components/plugins/maven-shade-plugin/examples/resource-transformers.html">transformers</a>， 参考的范例可见 <a href="https://gist.github.com/zhongl/0a1cdd746d142d0e3bd8e83f568a2599#file-pom-xml">pom.xml</a>。</p>
+<h1 id="值不值得">值不值得</h1>
+<p>会不会出现费那么大劲，结果发现 “瘦身” 效果很不明显。 理论上讲是 <strong>有可能的</strong>， 做与不做的预判是要靠经验的，这方面我还没有发现有什么捷径😊。</p>
+<p>The End.</p>
+<div><a href="https://zhongl.github.io/tags/jar" class="post-badge">jar</a><a href="https://zhongl.github.io/tags/log4j2" class="post-badge">log4j2</a><a href="https://zhongl.github.io/tags/reflection" class="post-badge">reflection</a><a href="https://github.com/zhongl/zhongl.github.com/issues/20" class="post-comment">Comment(1)</a></div><div></div></div></div></body></html>

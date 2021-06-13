@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">用Wireshark诊断Java远程断点调试的诡异问题</h1><p class="post-meta">06 Dec 2018 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="fix jdb attach remote problem with wireshake" />
+<input type="hidden" name="created" value="2018-12-06" />
+<blockquote>
+<p><strong>特别强调</strong>: 远程断点调试我是非常不推荐的做法, 原因有二:</p>
+<ol>
+<li>调试机与远程服务之间的网络是否有稳定的低延迟表现决定了调试的效率;</li>
+<li>一旦成功断点, 则直接影响远程服务的行为表现, 无论是测试环境还是生产环境都会造成不可预料的后果.</li>
+</ol>
+</blockquote>
+<p>说回正题.</p>
+<p>在给远程服务添加好开启远程调试的启动参数重启之后, 我便启动 <strong>IntellJ IDEA</strong> 连接远程服务进行断点, 等待十多秒后 <strong>IDEA</strong> 提示我: <code>Error running 'remote': Unable to open debugger port (jdwp_server:5005): java.io.IOException</code>. 初步网络诊断后结果是, 远程服务(<code>jdwp_server</code>) 能够 <strong>PING</strong> 通, <strong>Telnet</strong> 表明<strong>TCP</strong> 连接创建无碍.</p>
+<p>嗯, 问题诡异了.</p>
+<!--more-->
+<blockquote>
+<p><strong>启动参数</strong>
+<code>-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005</code></p>
+</blockquote>
+<p><strong>Google</strong> 了一阵子未果, 只好从网络通讯的细节中探究竟, 于是祭出神器 <strong>Wireshark</strong>. 首先是在本机抓包, 得到下图:</p>
+<p><img src="https://user-images.githubusercontent.com/419346/55405732-4487a200-558d-11e9-86fb-5eb8a34bd0af.png" alt="Client PCap" /></p>
+<p>图中报文细节也证实了 <strong>TCP</strong> 连接正常, 并完成了协议的握手过程(图中<code>len=14</code>的一个来回包交互). 只是接下来 <code>len=11</code> 的命令(<strong>Command</strong>)一直因为没有收到<strong>ACK</strong>, 而尝试重传(<strong>TCP Retransmission</strong>), 最后<strong>IDEA</strong>(<code>client</code>)主动放弃了.</p>
+<blockquote>
+<p><a href="https://docs.oracle.com/javase/1.5.0/docs/guide/jpda/jdwp-spec.html"><strong>J</strong>ava <strong>D</strong>ebug <strong>W</strong>ire <strong>P</strong>rotocol Handshake</a></p>
+<p>After the transport connection is established and before any packets are sent, a handshake occurs between the two sides of the connection:</p>
+</blockquote>
+<blockquote>
+<p>The handshake process has the following steps:</p>
+</blockquote>
+<blockquote>
+<p>The debugger side sends 14 bytes to the VM side, consisting of the 14 ASCII characters of the string &quot;JDWP-Handshake&quot;.
+The VM side replies with the same 14 bytes: JDWP-Handshake</p>
+</blockquote>
+<p>看来还需要另一边的报文来配合分析. 通过<code>tcpdump -i eth1 -w wire.pcap tcp port 5005</code>, 我拿到了服务端的报文, 如下图:</p>
+<p><img src="https://user-images.githubusercontent.com/419346/55406367-8a913580-558e-11e9-966d-6ad9e3b247f1.png" alt="JDWP Server Pcap" /></p>
+<p>同样是 <strong>TCP</strong> 正常连接后, 协议握手成功, 但是并没有收到 <code>len=11</code> 的命令, 至此可以确定这个<strong>命令包在传输链路上被丢弃了</strong>. 再三尝试, 发现每次都一样, 前面正常直到 <code>len=11</code> 命令丢失. 如果是偶发性的丢包, 也不应该偏偏如此巧就只丢同一个包啊?</p>
+<p>为了进一步排除远程服务端复杂网络环境的问题, 我在服务端同网段的另一台服务器上执行了<code>jdb -attach jdwp_server:5005</code>, 结果是一切正常. 那么只有可能是本机所在网络环境的出口(路由器)有重大嫌疑.</p>
+<blockquote>
+<p><strong>远程服务端的复杂网络环境</strong></p>
+<p><img src="https://user-images.githubusercontent.com/419346/55406421-ab598b00-558e-11e9-80a3-970cb8833a9a.png" alt="ingress network" /></p>
+<p><code>jdwp_server</code>是处于一个 <strong>Docker Swarm Cluster</strong> 中的一个 <strong>Service</strong>, 通过 <code>-p 5005:5005</code> 将端口暴露在 <strong>Ingress Network</strong> 中, 因此来自 <strong>IDEA</strong> 的数据包的链路还有些许复杂的.</p>
+</blockquote>
+<p>果然, 查看路由器配置后发现可疑的拦截规则, 去掉这些规则后丢包问题不复存在. 嗯, 问题解决了!</p>
+<div><a href="https://zhongl.github.io/tags/jdb" class="post-badge">jdb</a><a href="https://zhongl.github.io/tags/wireshark" class="post-badge">wireshark</a><a href="https://github.com/zhongl/zhongl.github.com/issues/24" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

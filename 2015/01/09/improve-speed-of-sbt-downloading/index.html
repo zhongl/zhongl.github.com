@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">加速 SBT 下载依赖库的速度</h1><p class="post-meta">09 Jan 2015 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="improve speed of sbt downloading" />
+<input type="hidden" name="created" value="2015-01-09" />
+<p>根据 <a href="http://www.scala-sbt.org/">SBT</a> 的官网文档中 <a href="http://www.scala-sbt.org/0.13/docs/Proxy-Repositories.html">Proxy Repositories</a> 部分的描述, 可以通过改变 <code>repositories</code> 的 <code>url</code> 列表来优化.</p>
+<!--more-->
+<h3 id="配置国内代理库">配置国内代理库</h3>
+<p>感谢 <a href="http://www.oschina.net">OSChina</a> 提供了 <a href="http://search.maven.org">Maven Center</a> 的镜像, 配置添加它有助于提升下载速度.</p>
+<pre><code>[repositories]
+  local
+  oschina:http://maven.oschina.net/content/groups/public/
+</code></pre>
+<blockquote>
+<p>若你知道其他更快的镜像库, 同上配置.
+一般互联网企业部署了供内部使用的镜像库(如 nexus ), 也可以配置于此.</p>
+</blockquote>
+<h3 id="兼容-ivy-路径布局">兼容 <code>Ivy</code> 路径布局</h3>
+<p>大多数中心仓库(repository)是 <a href="http://search.maven.org">Maven</a> 的路径布局, 这就导致 <a href="http://www.scala-sbt.org/">SBT</a> 的插件和部分 <a href="http://ant.apache.org/ivy/">Ivy</a> 依赖无法从其下载.</p>
+<pre><code>[repositories]
+  local
+  oschina:http://maven.oschina.net/content/groups/public/
+  oschina-ivy:http://maven.oschina.net/content/groups/public/, [organization]/[module]/(scala_[scalaVersion]/)(sbt_[sbtVersion]/)[revision]/[type]s/[artifact](-[classifier]).[ext]
+</code></pre>
+<h3 id="精简-url-列表">精简 <code>url</code> 列表</h3>
+<p>远程仓库越多越全, 可以基本避免下载不到的问题. 但是, 也可能让下载的时间更长, 让你不愿在等待而放弃下载.</p>
+<p>因为, 下载过程中 <a href="http://www.scala-sbt.org/">SBT</a> 会串行的 &quot;询问&quot; 列表中所有的远程仓库, 无论是否找得到.</p>
+<p>当依赖树越大, 整个下载的过程就更漫长. 若再遇到响应慢的仓库, 情况恶化的令人发指.</p>
+<p>推荐列表策略是:</p>
+<ul>
+<li>本地仓库</li>
+<li>国内(或内网)镜像仓库</li>
+<li>国外官方仓库, 通常 <code>#</code> 注释掉, 待上面不管用时, 去掉 <code>#</code> 再做尝试</li>
+</ul>
+<h2 id="上面办法不管用">上面办法不管用</h2>
+<p>建议使用你熟悉的网络嗅探手段查清具体原因, 对症下药了.</p>
+<h3 id="一个可行的方案">一个可行的方案</h3>
+<ol>
+<li>下载 HTTP 代理工具 <a href="https://mitmproxy.org/">mitmproxy</a>, 并运行它</li>
+<li>启动 <a href="http://www.scala-sbt.org/">SBT</a>时, 附加参数 <code>-Dhttp.proxyHost=loalhost -Dhttp.proxyPort=8080</code>, 这会将 <a href="http://www.scala-sbt.org/">SBT</a> 所有的 HTTP 请求经由 <a href="https://mitmproxy.org/">mitmproxy</a>转发</li>
+<li>通过 <a href="https://mitmproxy.org/">mitmproxy</a> 来分析 HTTP 请求失败的具体原因</li>
+</ol>
+<h3 id="此外你还可以参考">此外你还可以参考</h3>
+<p>http://afoo.me/posts/2014-11-05-how-make-sbt-jump-over-GFW.html</p>
+<p>The end.</p>
+<div><a href="https://zhongl.github.io/tags/proxy" class="post-badge">proxy</a><a href="https://zhongl.github.io/tags/sbt" class="post-badge">sbt</a><a href="https://zhongl.github.io/tags/scala" class="post-badge">scala</a><a href="https://github.com/zhongl/zhongl.github.com/issues/6" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

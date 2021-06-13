@@ -1,0 +1,1 @@
+**This is generated static blog by Github issues, more information please see [branch iblog](https://github.com/zhongl/zhongl.github.com/tree/iblog)**.

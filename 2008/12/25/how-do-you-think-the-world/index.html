@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">你思考世界的方式是什么</h1><p class="post-meta">25 Dec 2008 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="how do you think the world" />
+<input type="hidden" name="created" value="2008-12-25" />
+<p>短短几年工作里，我接触到了不少关于“面向XX”和“XX驱动”的思想，每当第一次听到它们时都会令我有种莫名的敬畏。</p>
+<p>昨天在初探Erlang的时候，它的创始人Joe Armstrong的一句话让我印象深刻<sup id="fnref-1"><a class="footnote-ref" href="#fn-1">1</a></sup>：</p>
+<blockquote>
+<p>At the highest level of abstraction an architecture is “a way of thinking about the world.”</p>
+</blockquote>
+<!--more-->
+<p>Joe这席话让我延伸理解为，架构与其说是问题的答案，倒不如说是对问题的抽象更贴切。这种抽象，就如同面向对象的世界里一切皆为对象，在面向并发的世界里一切皆为进程。 </p>
+<p>看待问题的方式，往往就已经决定了我们解决问题的方式。我的工作中就有这样的案例。系统需要控制资源的访问，这个问题域会被抽象为，给定的资源允许(或拒绝)被访问的对象和行为是哪些，由此访问控制列表(ACL)成为了这个问题域的解决方案。换个思考方式，同样的问题域我们抽象为，哪些的对象能够对哪些资源执行哪些访问行为，这样一来解决方案就变成“授权规则”。</p>
+<p>但所有问题的解决方式不可能只有一种，这已经不争的事实。熟悉设计模式的人都了解，每个模式都有其针对的问题域，和适用的场景。有趣的是，当问题域发生变化时，我们的思考方式却没有做适应性的变化，而且这也是我们在自身上极不容易意识到的。我们不妨谨记，当解决一个问题开始变得复杂繁琐时，这似乎就是我们该换一种方式去思考的信号啦。问题总会有最简单最直接的答案，只要我们能够感觉到现在的答案不是这样的，则极有可能是我们没有对问题进行合适的抽象(或解释)。</p>
+<p>至此，面对自己正在着手或即将着手的问题，最好问一句:“<strong>你思考世界的方式是什么</strong>”。</p>
+<p>  </p>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn-1">
+<p>《Making reliable distributed systems in the presence of sodware errors》，Joe Armstrong，2003    它的中文版名为《面对软件错误构建可靠的分布式系统》，由段先德先生于2007年翻译，访问<a href="http://www.oschina.net/action/file/download?id=120&amp;fn=8ad177ca48edba13c3cdbad93bd9da42d34ca1fe">这里</a>可以获取。</p>
+<a href="#fnref-1" class="footnote-backref">&#8617;</a>
+</li>
+</ol>
+</div>
+<div><a href="https://zhongl.github.io/tags/architecture" class="post-badge">architecture</a><a href="https://zhongl.github.io/tags/erlang" class="post-badge">erlang</a><a href="https://github.com/zhongl/zhongl.github.com/issues/1" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

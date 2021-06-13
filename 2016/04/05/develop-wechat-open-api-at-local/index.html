@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">微信开发平台本地调式方法</h1><p class="post-meta">05 Apr 2016 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="develop wechat open api at local" />
+<input type="hidden" name="created" value="2016-04-05" />
+<pre><code>          &lt;WOS&gt;                      &lt;AE&gt;                 &lt;ML&gt;
+ +--------------------+         +------------+        +-----------+
+ | WeChat Open Server | &lt;=====&gt; | Aliyun ECS | &lt;====&gt; | My Laptop |
+ +--------------------+         +------------+        +-----------+
+</code></pre>
+<!--more-->
+<h3 id="传统方式">传统方式</h3>
+<p><code>ML</code>上开发代码，打包部署到 <code>AE</code> 上运行，然后与 <code>WOS</code> 联调。</p>
+<h4 id="问题">问题</h4>
+<ol>
+<li><code>AE</code> 上开发工具简陋，调试效率低；</li>
+<li><code>ML</code> 通常在内网没有独立对外 IP，致使 <code>WOS</code> 不能直连。</li>
+</ol>
+<h3 id="改进方式">改进方式</h3>
+<p>思路是将 <code>AE</code> 作为<strong>透传代理</strong>。 实现方式如下：</p>
+<h4 id="ssh-远程转发">SSH 远程转发</h4>
+<pre><code>ML&gt; ssh -R '8080:localhost:12306' {AE}
+</code></pre>
+<p>在 <code>ML</code> 上执行上面的命令连接 <code>AE</code>， 将 <code>AE</code> 上所有 <code>8080</code> 端口的请求转发到 <code>ML</code> 的 <code>12306</code> 端口上。</p>
+<blockquote>
+<p>这里会遇到一个坑，<code>SSH</code>默认只会转发所有到<code>127.0.0.1:8080</code>的数据。显然这不是我们想要的，然而<code>Aliyun ECS</code>上即便修改<code>GatewayPorts=yes</code>也无法实现转发来自对外 IP 的数据，故此有了下面的办法。</p>
+</blockquote>
+<h4 id="nc-本地转发">NC 本地转发</h4>
+<pre><code>AE&gt; nc --sh-exec &quot;nc localhost 8080&quot; -l 80 --keep-open
+</code></pre>
+<p>在 <code>AE</code> 上执行上述命令， 实现监听 <code>80</code> 端口并将所有数据透传到本地的 <code>8080</code> 端口。</p>
+<p>The end.</p>
+<div><a href="https://zhongl.github.io/tags/netcat" class="post-badge">netcat</a><a href="https://zhongl.github.io/tags/openapi" class="post-badge">openapi</a><a href="https://zhongl.github.io/tags/proxy" class="post-badge">proxy</a><a href="https://zhongl.github.io/tags/ssh" class="post-badge">ssh</a><a href="https://zhongl.github.io/tags/wechat" class="post-badge">wechat</a><a href="https://github.com/zhongl/zhongl.github.com/issues/12" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

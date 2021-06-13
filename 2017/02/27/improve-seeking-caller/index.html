@@ -1,0 +1,80 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">Stagemonitor中获取执行SQL的调用方法的实现与改进</h1><p class="post-meta">27 Feb 2017 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="improve seeking caller" />
+<input type="hidden" name="created" value="2017-02-27" />
+<p><a href="https://github.com/stagemonitor/stagemonitor">Stagemonitor</a> 有个特性是， 可以展示出所有执行 SQL 调用的方法测量数据， 比如请求量， 耗时分布。实现计量数据的收集并不难（原理可见<a href="https://zhongl.github.io/2011/08/15/trace-your-java-program-at-runtime/">《动态实时跟踪你的java程序》</a>），但要想<strong>获取执行SQL的调用方法</strong>是什么，则是需要一点“小聪明”。</p>
+<p>相信你已经想到了！通过<code>Thread.currentThread().getStackTrace()</code>就可以拿到当前方法的调用栈<code>StackTraceElement[]</code>，遍历它便可确定调用执行 SQL 的方法究竟有哪些。具体我们看看 <a href="https://github.com/stagemonitor/stagemonitor">Stagemonitor</a> 的<a href="https://github.com/stagemonitor/stagemonitor/blob/master/stagemonitor-core/src/main/java/org/stagemonitor/core/instrument/CallerUtil.java">实现代码</a>吧:</p>
+<!--more-->
+<pre><code class="language-java">private static String getCallerSignatureGetStackTrace() {
+  String executedBy = null;
+  for (StackTraceElement e : Thread.currentThread().getStackTrace()) {
+	if (StagemonitorClassNameMatcher.isIncluded(e.getClassName())) {
+      executedBy = SignatureUtils.getSignature(e.getClassName(), e.getMethodName());
+      break;
+    }
+  }
+  return executedBy;
+}
+</code></pre>
+<p>调用栈方法那么多，怎么找到我们关心的那个调用方法呢？如上，<a href="https://github.com/stagemonitor/stagemonitor">Stagemonitor</a>通过配置以便让<code>StagemonitorClassNameMatcher.isIncluded()</code>可以对类名进行过滤， 找到第一个满足条件的就是我们关心的方法啦。举个例子，通常执行 SQL 的调用方法都存在 DAO 类中， 而这类类名的命名都有一定的特征， 比如叫<code>XxxDAO</code>。 然后，便可以利用这个特征来匹配类名啦。</p>
+<h2 id="注意不要忽视观察者效应">注意，不要忽视观察者效应！</h2>
+<p>尤其对于<a href="https://github.com/stagemonitor/stagemonitor">Stagemonitor</a>来说， 作为一个观测工具，应该<a href="https://zh.wikipedia.org/wiki/%E8%A7%82%E6%B5%8B%E8%80%85%E6%95%88%E5%BA%94">尽可能减少对被观测对象的影响</a>。 <code>Thread.currentThread().getStackTrace()</code>是一个相对耗时的调用，且随着调用栈的深度增加，而调用耗时更多。具体到执行SQL的场景， 一个典型的 Spring + MyBatis 的 Web 应用， 它的调用栈就有可能好几十层。</p>
+<p>其实，<a href="https://github.com/stagemonitor/stagemonitor">Stagemonitor</a>的作者已经意识到了这个问题， 并在<a href="https://github.com/stagemonitor/stagemonitor/blob/master/stagemonitor-core/src/main/java/org/stagemonitor/core/instrument/CallerUtil.java">实现代码</a>提供了另一种优化：</p>
+<pre><code class="language-java">private static String getCallerSignatureSharedSecrets() {
+  String executedBy = null;
+  Exception exception = new Exception();
+  JavaLangAccess javaLangAccess = ...;
+  for (int i = 2; i &lt; javaLangAccess.getStackTraceDepth(exception); i++) {
+    final StackTraceElement e = javaLangAccess.getStackTraceElement(exception, i);
+    if (StagemonitorClassNameMatcher.isIncluded(e.getClassName())) {
+      executedBy = SignatureUtils.getSignature(e.getClassName(), e.getMethodName());
+      break;
+    }
+  }
+  return executedBy;
+}
+</code></pre>
+<p>借助<code>sun.misc.JavaLangAccess</code>这个 JDK 的内部 API 来改善调用栈的访问效率。</p>
+<h2 id="其实-还有更好的做法">其实， 还有更好的做法</h2>
+<p>首先，类似采集计量数据的办法，我们动态修改可能执行 SQL 的所有调用方法的字节码， 在一进入它们时， 就往当前线程的<code>ThreadLocal</code>写入自身的方法签名，如下面代码中注解的那样：</p>
+<pre><code class="language-java">
+class SignatureHolder {
+  public static final ThreadLocal&lt;String&gt; CALLER = new ThreadLocal&lt;&gt;();
+}
+
+class FooDAO {
+
+    public Foo getById(long id) {
+        // SignatureHolder.CALLER.set(&quot;FooDAO#getById&quot;)
+        return ...
+    }
+}
+</code></pre>
+<p>剩下的就简单了， 在 SQL 执行的上下文中调用 <code>SignatureHolder.CALLER.get()</code> ，便可获得执行 SQL的调用方法签名了。</p>
+<h2 id="效果如何呢">效果如何呢？</h2>
+<p>为了说明效果， 我将上述三种方案简化为如下可观测的代码：</p>
+<p>{% gist zhongl/249ef6881daf8705d93c63f7965decd3 Main.java %}</p>
+<p>我的 MacBookPro 跑出的数据如下：</p>
+<blockquote>
+<p>当然，这只是一个参考值，你完全可以于自己的环境中运行上面代码获得更有参考价值的数据。</p>
+</blockquote>
+<h3 id="基线性能">基线性能</h3>
+<pre><code>[RSF]: Avg elapse 86 ns in depth[50] with doGet [false].
+</code></pre>
+<p>一个有 50 层深度的调用栈，不做任何获取调用方法的尝试， 平均每次调用消耗 <code>86</code> 纳秒。</p>
+<h3 id="不同方案下的性能影响">不同方案下的性能影响</h3>
+<pre><code>[TST]: Avg elapse 33332 ns in depth[50] with doGet [true].
+</code></pre>
+<p>通过 <code>Thread.currentThread().getStackTrace()</code> 实现的平均每次调用消耗变成了 <code>33332</code> 纳秒。</p>
+<pre><code>[JLA]: Avg elapse 9964 ns in depth[50] with doGet [true].
+</code></pre>
+<p>通过 <code>sun.misc.JavaLangAccess</code> 实现表现好些， 平均每次调用消耗变成了 <code>9964</code> 纳秒。</p>
+<pre><code>[RSF]: Avg elapse 116 ns in depth[50] with doGet [true].
+</code></pre>
+<p>最后， 通过 <code>ThreadLocal</code> 实现，其影响最微小， 平均每次调用消耗变成了 <code>116</code> 纳秒。</p>
+<h2 id="最后">最后</h2>
+<p>方案的选择，大多不会是由一个因素来决定的， 它是平衡的结果。</p>
+<p>本文只是抛出我的个人看法， 至于你怎么选择， 留给你来决定。</p>
+<div><a href="https://zhongl.github.io/tags/apm" class="post-badge">apm</a><a href="https://zhongl.github.io/tags/javaagent" class="post-badge">javaagent</a><a href="https://github.com/zhongl/zhongl.github.com/issues/19" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

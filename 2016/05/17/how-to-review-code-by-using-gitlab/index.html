@@ -1,0 +1,22 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">如何用 Gitlab 做 Code Review</h1><p class="post-meta">17 May 2016 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="how to review code by using gitlab" />
+<input type="hidden" name="created" value="2016-05-17" />
+<h2 id="基于分支的代码-review">基于分支的代码 Review</h2>
+<ol>
+<li>新建 Issue (无论是 bug 还是 feature), 描述背景或问题,</li>
+<li>本地创建分支 <code>issue/123</code> (<code>123</code>是 issue 的 ID), 围绕关联 issue 进行 <code>program -&gt; commit -&gt; push</code>,</li>
+<li>新建 Merge Request 从 <code>issue/123</code> 到 <code>master</code>, 并指派给项目 Owner (或合适 Reviewer) ,</li>
+<li>被指派人完成代码审查后， 执行代码合并, 同时删除分支 <code>issue/123</code> .</li>
+</ol>
+<!--more-->
+<h2 id="多人-review">多人 Review</h2>
+<ol>
+<li>提交 Merge Request 后， 被指派人可通过 <code>@someone</code> 邀请一个或多个额外的 Reviewer （它们会收到邮件通知）</li>
+<li>被邀请的 Reviewer 看过代码后， 可回复<code>:thumbsup:</code>或<code>+1</code>表示通过， 反之给出修改建议。</li>
+</ol>
+<h2 id="protect-branch">Protect Branch</h2>
+<p>为了避免意外的代码提交或合并， 项目 Owner 或 Master 可以在项目 <code>Settings -&gt; Protected branches</code> 添加受保护的分支，进而引导代码提交是基于 Merge Request 的形式经过 review 之后才合并到目标分支上。</p>
+<div><a href="https://zhongl.github.io/tags/branch" class="post-badge">branch</a><a href="https://zhongl.github.io/tags/code-review" class="post-badge">code review</a><a href="https://zhongl.github.io/tags/gitlab" class="post-badge">gitlab</a><a href="https://zhongl.github.io/tags/merge-request" class="post-badge">merge request</a><a href="https://github.com/zhongl/zhongl.github.com/issues/13" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>

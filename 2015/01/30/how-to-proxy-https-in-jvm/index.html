@@ -1,0 +1,34 @@
+<!DOCTYPE html><html lang="en-us"><head><link href="http://gmpg.org/xfn/11" rel="profile" /><meta http-equiv="X-UA-Compatible" content="IE=edge" /><meta http-equiv="content-type" content="text/html; charset=utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" /><title>放着, 我来</title><link rel="stylesheet" href="https://zhongl.github.io/public/css/poole.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/syntax.css" /><link rel="stylesheet" href="https://zhongl.github.io/public/css/hyde.css" /><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noto+Sans+SC:400" /><link rel="apple-touch-icon-precomposed" sizes="144x144" href="https://zhongl.github.io/public/apple-touch-icon-144-precomposed.png" /><link rel="shortcut icon" href="https://zhongl.github.io/public/favicon.ico" /><script src="https://www.googletagmanager.com/gtag/js?id=UA-6664231-5"></script><script> window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'UA-6664231-5');
+    </script></head><body class=" "><div class="sidebar"><div class="container sidebar-sticky"><div class="sidebar-about"><h1>放着, 我来</h1><blockquote>理想和情怀是有代价的, 但好在它不是自由的枷锁, 而应该是真正的自由本身. <a href="https://weibo.com/1875401263/DDSIEbOJy">by @dcaoyuan</a></blockquote></div><nav class="sidebar-nav"><a class="sidebar-nav-item" href="https://zhongl.github.io/">Home</a><a class="sidebar-nav-item" href="https://github.com/zhongl">Github</a><a class="sidebar-nav-item" href="https://speakerdeck.com/zhongl/">Speaker</a><a class="sidebar-nav-item" href="http://cafusic.lofter.com/">Lofter</a></nav><p>&copy; 2021. All rights reserved</p></div></div><div class="content container"><div class="post"><h1 class="post-title">使用 mitmproxy 代理 JAVA 应用 HTTPS 请求</h1><p class="post-meta">30 Jan 2015 @<a href="https://github.com/zhongl">zhongl</a></p><input type="hidden" name="id" value="how to proxy https in jvm" />
+<input type="hidden" name="created" value="2015-01-30" />
+<h2 id="背景问题">背景问题</h2>
+<p>设置 <code>-Dhttps.proxyHost=localhost -Dhttps.proxyPort=8080</code>  使 JAVA 应用所有 HTTPS 请求经过 <a href="http://mitmproxy.org">mitmproxy</a> 代理发出. 结果得到下面的错误:</p>
+<blockquote>
+<p>Server access Error: sun.security.validator.ValidatorException: PKIX path building failed: sun.security.provider.certpath.SunCertPathBuilderException: unable to find valid certification path to requested ...</p>
+</blockquote>
+<!--more-->
+<h3 id="环境">环境</h3>
+<pre><code>Mac OSX 10.10.2
+java version &quot;1.7.0_55&quot;
+Java(TM) SE Runtime Environment (build 1.7.0_55-b13)
+Java HotSpot(TM) 64-Bit Server VM (build 24.55-b03, mixed mode)
+</code></pre>
+<h2 id="解决方案">解决方案</h2>
+<p>将 <a href="http://mitmproxy.org">mitmproxy</a> 的证书导入到 JDK 默认的 keystore 中:</p>
+<pre><code>sudo keytool -importcert -alias mitmproxy  \
+-keystore &lt;keystore_path&gt; \
+-storepass &lt;password&gt; \
+-trustcacerts \
+-file ~/.mitmproxy/mitmproxy-ca-cert.pem
+</code></pre>
+<blockquote>
+<p>password 默认是 changeit</p>
+</blockquote>
+<h3 id="查明-keystore-路径">查明 keystore 路径</h3>
+<pre><code>scala -e 'import java.net._; new URL(&quot;https://www.wacai.com&quot;).openConnection.asInstanceOf[HttpURLConnection].disconnect' -Djavax.net.debug=SSL | grep &quot;trustStore is&quot;
+</code></pre>
+<p>The end.</p>
+<div><a href="https://zhongl.github.io/tags/https" class="post-badge">https</a><a href="https://zhongl.github.io/tags/java" class="post-badge">java</a><a href="https://zhongl.github.io/tags/proxy" class="post-badge">proxy</a><a href="https://github.com/zhongl/zhongl.github.com/issues/10" class="post-comment">Comment(0)</a></div><div></div></div></div></body></html>
